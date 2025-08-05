@@ -5,7 +5,7 @@ import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
-import { Bell, Home, LogOut, User, X, LayoutDashboard } from "lucide-react";
+import { Bell, Home, LogOut, User, X, LayoutDashboard, Truck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -106,6 +106,12 @@ export function Header() {
                     <Link href="/booking">
                         <Home className="mr-2 h-4 w-4" />
                         Home
+                    </Link>
+                </Button>
+                <Button variant="ghost" asChild>
+                    <Link href="/delivery">
+                        <Truck className="mr-2 h-4 w-4" />
+                        Delivery
                     </Link>
                 </Button>
             </>

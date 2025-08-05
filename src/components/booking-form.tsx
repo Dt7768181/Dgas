@@ -33,7 +33,7 @@ const formSchema = z.object({
     }),
     address: z.string().min(10, {
         message: "Address must be at least 10 characters.",
-    }).optional(),
+    }),
     deliveryDate: z.date({
         required_error: "A delivery date is required.",
     }),
@@ -45,18 +45,22 @@ const formSchema = z.object({
 export function BookingForm() {
     const { toast } = useToast();
     const router = useRouter();
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, user } = useAuth();
+    const [savedAddress, setSavedAddress] = useState("");
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
+        defaultValues: {
+            address: "",
+        }
     });
 
     useEffect(() => {
+        // In a real app, you would fetch the user's saved address from your DB
         if (isLoggedIn) {
-            // In a real app, you would fetch the user's saved address
-            form.setValue("address", "123 Main St, Anytown");
-        } else {
-            form.resetField("address");
+            const userAddress = "123 Main St, Anytown"; // Placeholder
+            setSavedAddress(userAddress);
+            form.setValue("address", userAddress);
         }
     }, [isLoggedIn, form]);
 
@@ -139,21 +143,25 @@ export function BookingForm() {
                                 </FormItem>
                             )}
                         />
-                        {!isLoggedIn && (
-                            <FormField
-                                control={form.control}
-                                name="address"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Delivery Address</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="e.g. 123 Main St, Anytown" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
+                        
+                        <FormField
+                            control={form.control}
+                            name="address"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Delivery Address</FormLabel>
+                                    <FormControl>
+                                        <Input 
+                                            placeholder="e.g. 123 Main St, Anytown" 
+                                            {...field} 
+                                            disabled={isLoggedIn} // Disable if logged in and address is pre-filled
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        
                          <FormField
                             control={form.control}
                             name="deliveryDate"
