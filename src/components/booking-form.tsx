@@ -13,7 +13,6 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -26,13 +25,12 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { useAuth } from "@/hooks/use-auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 const formSchema = z.object({
     cylinderType: z.enum(["single", "family", "commercial"], {
         required_error: "You need to select a cylinder type.",
-    }),
-    address: z.string().min(10, {
-        message: "Address must be at least 10 characters.",
     }),
     deliveryDate: z.date({
         required_error: "A delivery date is required.",
@@ -46,23 +44,31 @@ export function BookingForm() {
     const { toast } = useToast();
     const router = useRouter();
     const { isLoggedIn, user } = useAuth();
-    const [savedAddress, setSavedAddress] = useState("");
+    const [address, setAddress] = useState("");
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            address: "",
-        }
     });
 
     useEffect(() => {
-        // In a real app, you would fetch the user's saved address from your DB
-        if (isLoggedIn) {
-            const userAddress = "123 Main St, Anytown"; // Placeholder
-            setSavedAddress(userAddress);
-            form.setValue("address", userAddress);
+        const fetchUserAddress = async () => {
+             if (isLoggedIn && user) {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists() && userDoc.data().address) {
+                    setAddress(userDoc.data().address);
+                } else {
+                     toast({
+                        title: "No Address Found",
+                        description: "Please add a delivery address to your profile.",
+                        variant: "destructive",
+                    });
+                     router.push('/profile');
+                }
+            }
         }
-    }, [isLoggedIn, form]);
+        fetchUserAddress();
+    }, [isLoggedIn, user, toast, router]);
 
 
     function onSubmit(values: z.infer<typeof formSchema>) {
@@ -76,8 +82,23 @@ export function BookingForm() {
             return;
         }
 
+        if (!address) {
+            toast({
+                title: "Address Required",
+                description: "Please set your delivery address in your profile before booking.",
+                variant: "destructive",
+            });
+            router.push('/profile');
+            return;
+        }
+
+        const bookingDetails = {
+            ...values,
+            address: address, // Add the fetched address to the booking details
+        };
+
         // Store booking details in session storage to pass to payment page
-        sessionStorage.setItem("bookingDetails", JSON.stringify(values));
+        sessionStorage.setItem("bookingDetails", JSON.stringify(bookingDetails));
 
         toast({
             title: "Booking Initiated",
@@ -138,24 +159,6 @@ export function BookingForm() {
                                                 <span className="text-sm font-medium">₹1200</span>
                                             </FormItem>
                                         </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        
-                        <FormField
-                            control={form.control}
-                            name="address"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Delivery Address</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                            placeholder="e.g. 123 Main St, Anytown" 
-                                            {...field} 
-                                            disabled={isLoggedIn} // Disable if logged in and address is pre-filled
-                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
