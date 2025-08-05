@@ -8,22 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const router = useRouter();
-  const { toast } = useToast();
+  const { login, loginWithGoogle } = useAuth();
+  const [email, setEmail] = useState("john.doe@example.com");
+  const [password, setPassword] = useState("password");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    login();
-    toast({
-        title: "Login Successful!",
-        description: "Welcome back.",
-    });
-    router.push('/profile');
+    login(email, password);
   };
 
   return (
@@ -43,7 +37,8 @@ export default function LoginPage() {
                 type="email"
                 placeholder="m@example.com"
                 required
-                defaultValue="john.doe@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
@@ -53,12 +48,18 @@ export default function LoginPage() {
                   Forgot your password?
                 </Link>
               </div>
-              <Input id="password" type="password" required defaultValue="password" />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                />
             </div>
             <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
               Login
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={(e) => {e.preventDefault(); loginWithGoogle()}}>
               Login with Google
             </Button>
           </form>

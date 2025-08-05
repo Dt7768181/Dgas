@@ -49,16 +49,14 @@ export function BookingForm() {
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            address: isLoggedIn ? "123 Main St, Anytown" : "",
-        },
     });
 
     useEffect(() => {
         if (isLoggedIn) {
+            // In a real app, you would fetch the user's saved address
             form.setValue("address", "123 Main St, Anytown");
         } else {
-            form.setValue("address", "");
+            form.resetField("address");
         }
     }, [isLoggedIn, form]);
 

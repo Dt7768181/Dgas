@@ -10,8 +10,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/hooks/use-toast";
 
 const initialNotifications = [
     { title: "Delivery Update", description: "Your order #12345 is out for delivery.", time: "5m ago" },
@@ -26,9 +24,7 @@ export function Header() {
     const [notifications, setNotifications] = useState(initialNotifications);
     const [promotions, setPromotions] = useState(initialPromotions);
     const { isLoggedIn, logout } = useAuth();
-    const router = useRouter();
-    const { toast } = useToast();
-
+    
     const allItems = [...notifications, ...promotions];
 
     const clearAll = () => {
@@ -38,11 +34,6 @@ export function Header() {
 
     const handleLogout = () => {
         logout();
-        toast({
-            title: "Logged Out",
-            description: "You have been successfully logged out.",
-        });
-        router.push('/login');
     }
 
     return (
