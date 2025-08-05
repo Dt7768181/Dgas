@@ -89,7 +89,7 @@ export default function TrackOrderPage() {
             </div>
             <div className="text-right">
                 <p className="font-bold text-primary">Estimated Arrival</p>
-                <p className="text-muted-foreground">{latestOrder.deliveryDate.toDate().toLocaleDateString('en-US', { weekday: 'long', hour: 'numeric', minute: 'numeric' })}</p>
+                <p className="text-muted-foreground">{latestOrder.deliveryDate.toDate().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
             </div>
             </CardHeader>
             <Separator />

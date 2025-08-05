@@ -19,6 +19,12 @@ const cylinderPrices: { [key: string]: number } = {
     commercial: 1200,
 };
 
+const deliverySlotTimes: { [key: string]: { hours: number, minutes: number} } = {
+    morning: { hours: 10, minutes: 0},
+    afternoon: { hours: 14, minutes: 0 },
+    evening: { hours: 18, minutes: 0 },
+}
+
 export default function PaymentPage() {
     const router = useRouter();
     const { toast } = useToast();
@@ -54,12 +60,19 @@ export default function PaymentPage() {
         }
 
         try {
+            // Combine date and time for delivery
+            const deliveryDate = new Date(bookingDetails.deliveryDate);
+            const slotTime = deliverySlotTimes[bookingDetails.deliverySlot];
+            if (slotTime) {
+                deliveryDate.setHours(slotTime.hours, slotTime.minutes, 0, 0);
+            }
+
             // Save order to Firestore
             const userOrdersCollection = collection(db, "users", user.uid, "orders");
             await addDoc(userOrdersCollection, {
                 orderId: orderId,
                 ...bookingDetails,
-                deliveryDate: new Date(bookingDetails.deliveryDate), // Convert string back to Date
+                deliveryDate: deliveryDate,
                 total: orderTotal,
                 status: "Confirmed",
                 createdAt: serverTimestamp(),
