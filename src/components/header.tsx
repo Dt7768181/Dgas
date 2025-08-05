@@ -45,7 +45,7 @@ export function Header() {
                 </Link>
                 <nav className="hidden items-center gap-4 md:flex">
                     <Button variant="ghost" asChild>
-                        <Link href="/">
+                        <Link href="/booking">
                             <Home className="mr-2 h-4 w-4" />
                             Home
                         </Link>
