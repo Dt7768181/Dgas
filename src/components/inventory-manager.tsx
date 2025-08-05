@@ -19,21 +19,21 @@ interface Stock {
 export function InventoryManager() {
     const [stock, setStock] = useState<Stock>({ single: 0, family: 0, commercial: 0 });
     const { toast } = useToast();
-    const stockDocRef = doc(db, "inventory", "gasCylinders");
 
     useEffect(() => {
+        const stockDocRef = doc(db, "inventory", "gasCylinders");
         const unsubscribe = onSnapshot(stockDocRef, (doc) => {
             if (doc.exists()) {
                 setStock(doc.data() as Stock);
             } else {
-                // You might want to initialize the document if it doesn't exist
                 console.log("No stock document found!");
             }
         });
         return () => unsubscribe();
-    }, [stockDocRef]);
+    }, []);
 
     const handleStockChange = async (type: keyof Stock, amount: number) => {
+        const stockDocRef = doc(db, "inventory", "gasCylinders");
         try {
             // Check if stock will go below zero
             const currentDoc = await getDoc(stockDocRef);
