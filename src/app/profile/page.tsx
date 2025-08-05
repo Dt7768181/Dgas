@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
@@ -64,11 +64,12 @@ export default function ProfilePage() {
         if (user) {
             const userDocRef = doc(db, "users", user.uid);
             try {
-                await updateDoc(userDocRef, {
+                // Use setDoc with merge:true to create or update the document
+                await setDoc(userDocRef, {
                     fullName,
                     email,
                     address,
-                });
+                }, { merge: true });
                 toast({
                     title: "Success",
                     description: "Your profile has been updated.",
