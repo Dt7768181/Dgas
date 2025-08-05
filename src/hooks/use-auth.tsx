@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             }
             else {
-                router.push('/profile');
+                router.push('/booking');
             }
             return { user: loggedInUser, isAdmin: userIsAdmin, isDeliveryPartner: userIsDeliveryPartner };
 
@@ -140,10 +140,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 title: "Signup Successful!",
                 description: "Your account has been created.",
             });
+
             if (isDeliveryPartner) {
                 router.push('/delivery');
             } else {
-                router.push('/profile');
+                router.push('/booking');
             }
         } catch (error: any) {
              console.error("Signup error:", error);
