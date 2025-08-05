@@ -74,6 +74,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const login = async (email:string, password:string, isAdminLogin = false, isDeliveryPartnerLogin = false) => {
         try {
+             // Role-specific checks before login
+            if (isDeliveryPartnerLogin) {
+                const q = query(collection(db, "deliveryPartners"), where("email", "==", email));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                     toast({ title: "Login Failed", description: "This email is not registered as a delivery partner.", variant: "destructive" });
+                     return null;
+                }
+            } else { // For regular users and admins
+                 const q = query(collection(db, "users"), where("email", "==", email));
+                 const querySnapshot = await getDocs(q);
+                 if (querySnapshot.empty) {
+                     toast({ title: "Login Failed", description: "This email is not registered as a user. Are you a delivery partner?", variant: "destructive" });
+                     return null;
+                 }
+            }
+
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const loggedInUser = userCredential.user;
             
@@ -131,9 +148,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         } catch (error: any) {
             console.error("Login error:", error);
+             let errorMessage = "An unknown error occurred.";
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                errorMessage = "Invalid email or password. Please try again.";
+            } else {
+                errorMessage = error.message;
+            }
             toast({
                 title: "Login Failed",
-                description: error.message,
+                description: errorMessage,
                 variant: "destructive",
             });
             return null;
