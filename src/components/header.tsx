@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
 import { Bell, Home, LogOut, User, X, LayoutDashboard } from "lucide-react";
@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
+import { ThemeToggle } from "./theme-toggle";
 
 const initialNotifications = [
     { title: "Delivery Update", description: "Your order #12345 is out for delivery.", time: "5m ago" },
@@ -23,8 +24,13 @@ const initialPromotions = [
 export function Header() {
     const [notifications, setNotifications] = useState(initialNotifications);
     const [promotions, setPromotions] = useState(initialPromotions);
-    const { isLoggedIn, logout, isAdmin } = useAuth();
+    const { user, isLoggedIn, logout, isAdmin } = useAuth();
+    const [mounted, setMounted] = useState(false);
     
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const allItems = [...notifications, ...promotions];
 
     const clearAll = () => {
@@ -36,14 +42,23 @@ export function Header() {
         logout();
     }
 
-    return (
-        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
-                <Link href="/" className="flex items-center gap-2">
-                    <GasCylinderIcon className="h-8 w-8 text-primary" />
-                    <span className="font-headline text-2xl font-bold text-foreground">Dgas</span>
-                </Link>
-                <nav className="hidden items-center gap-4 md:flex">
+    const renderNavLinks = () => {
+        if (!mounted) return null;
+
+        if (isLoggedIn && isAdmin) {
+            return (
+                <Button variant="ghost" asChild>
+                    <Link href="/admin/dashboard">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
+                    </Link>
+                </Button>
+            );
+        }
+
+        if (isLoggedIn) {
+            return (
+                <>
                     <Button variant="ghost" asChild>
                         <Link href="/booking">
                             <Home className="mr-2 h-4 w-4" />
@@ -56,6 +71,54 @@ export function Header() {
                             Profile
                         </Link>
                     </Button>
+                </>
+            );
+        }
+
+        return (
+             <>
+                <Button variant="ghost" asChild>
+                    <Link href="/booking">
+                        <Home className="mr-2 h-4 w-4" />
+                        Home
+                    </Link>
+                </Button>
+            </>
+        )
+    };
+    
+    const renderAuthButton = () => {
+        if (!mounted) {
+            return (
+                <Button variant="outline" size="icon" disabled>
+                     <LogOut className="h-4 w-4" />
+                </Button>
+            )
+        }
+        if (isLoggedIn) {
+            return (
+                <Button onClick={handleLogout} variant="outline">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                </Button>
+            )
+        }
+        return (
+             <Button asChild>
+                <Link href="/login">Login</Link>
+            </Button>
+        )
+    }
+
+    return (
+        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
+                <Link href="/" className="flex items-center gap-2">
+                    <GasCylinderIcon className="h-8 w-8 text-primary" />
+                    <span className="font-headline text-2xl font-bold text-foreground">Dgas</span>
+                </Link>
+                <nav className="hidden items-center gap-4 md:flex">
+                    {renderNavLinks()}
                 </nav>
                 <div className="flex items-center gap-4">
                     <Popover>
@@ -113,16 +176,8 @@ export function Header() {
                             </Tabs>
                         </PopoverContent>
                     </Popover>
-                    {isLoggedIn ? (
-                        <Button onClick={handleLogout} variant="outline">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Logout
-                        </Button>
-                    ) : (
-                        <Button asChild>
-                            <Link href="/login">Login</Link>
-                        </Button>
-                    )}
+                    <ThemeToggle />
+                    {renderAuthButton()}
                 </div>
             </div>
         </header>
