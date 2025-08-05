@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CreditCard, DollarSign } from "lucide-react";
+import { CreditCard, IndianRupee } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,7 +29,7 @@ export default function PaymentPage() {
       <Card className="mx-auto w-full max-w-md shadow-2xl">
         <CardHeader>
           <div className="flex items-center justify-center">
-            <DollarSign className="h-12 w-12 text-primary" />
+            <IndianRupee className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="mt-4 text-center font-headline text-3xl">Complete Your Payment</CardTitle>
           <CardDescription className="text-center">Enter your card details to finalize the booking for Order #DGAS12345.</CardDescription>
@@ -58,7 +58,7 @@ export default function PaymentPage() {
                     </div>
                 </div>
                 <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" size="lg">
-                    Pay Now ($85.00)
+                    Pay Now (₹850.00)
                 </Button>
             </form>
         </CardContent>

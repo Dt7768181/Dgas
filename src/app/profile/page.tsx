@@ -7,9 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 
 const orderHistory = [
-    { id: "#DGAS12345", date: "2024-05-20", item: "Family Cylinder", total: "$85.00", status: "Delivered" },
-    { id: "#DGAS12301", date: "2024-04-15", item: "Family Cylinder", total: "$82.50", status: "Delivered" },
-    { id: "#DGAS11998", date: "2024-03-11", item: "Single Cylinder", total: "$45.00", status: "Delivered" },
+    { id: "#DGAS12345", date: "2024-05-20", item: "Family Cylinder", total: "₹850.00", status: "Delivered" },
+    { id: "#DGAS12301", date: "2024-04-15", item: "Family Cylinder", total: "₹825.00", status: "Delivered" },
+    { id: "#DGAS11998", date: "2024-03-11", item: "Single Cylinder", total: "₹450.00", status: "Delivered" },
 ];
 
 export default function ProfilePage() {
