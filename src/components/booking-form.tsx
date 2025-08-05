@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "./ui/calendar";
+import { useAuth } from "@/hooks/use-auth";
 
 const formSchema = z.object({
     cylinderType: z.enum(["single", "family", "commercial"], {
@@ -40,19 +41,6 @@ const formSchema = z.object({
         required_error: "Please select a delivery slot.",
     }),
 });
-
-// Mock authentication check
-const useAuth = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-    useEffect(() => {
-        // In a real app, you'd check for a token or session
-        // For now, we'll simulate being logged in
-        setIsLoggedIn(true); 
-    }, []);
-
-    return { isLoggedIn };
-};
 
 export function BookingForm() {
     const { toast } = useToast();

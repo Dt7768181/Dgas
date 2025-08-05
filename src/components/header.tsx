@@ -5,10 +5,13 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
-import { Bell, Home, PackageSearch, User, X } from "lucide-react";
+import { Bell, Home, LogOut, PackageSearch, User, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 const initialNotifications = [
     { title: "Delivery Update", description: "Your order #12345 is out for delivery.", time: "5m ago" },
@@ -22,12 +25,24 @@ const initialPromotions = [
 export function Header() {
     const [notifications, setNotifications] = useState(initialNotifications);
     const [promotions, setPromotions] = useState(initialPromotions);
+    const { isLoggedIn, logout } = useAuth();
+    const router = useRouter();
+    const { toast } = useToast();
 
     const allItems = [...notifications, ...promotions];
 
     const clearAll = () => {
         setNotifications([]);
         setPromotions([]);
+    }
+
+    const handleLogout = () => {
+        logout();
+        toast({
+            title: "Logged Out",
+            description: "You have been successfully logged out.",
+        });
+        router.push('/');
     }
 
     return (
@@ -113,9 +128,16 @@ export function Header() {
                             </Tabs>
                         </PopoverContent>
                     </Popover>
-                    <Button asChild>
-                        <Link href="/login">Login</Link>
-                    </Button>
+                    {isLoggedIn ? (
+                        <Button onClick={handleLogout} variant="outline">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Logout
+                        </Button>
+                    ) : (
+                        <Button asChild>
+                            <Link href="/login">Login</Link>
+                        </Button>
+                    )}
                 </div>
             </div>
         </header>
