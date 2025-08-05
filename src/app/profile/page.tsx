@@ -24,7 +24,7 @@ interface Order {
 }
 
 export default function ProfilePage() {
-    const { user, isLoggedIn } = useAuth();
+    const { user, isLoggedIn, isDeliveryPartner } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [fullName, setFullName] = useState('');
@@ -40,8 +40,11 @@ export default function ProfilePage() {
 
         const fetchUserData = async () => {
             if (user) {
-                const userDocRef = doc(db, "users", user.uid);
+                // Determine the correct collection based on the user's role
+                const collectionName = isDeliveryPartner ? "deliveryPartners" : "users";
+                const userDocRef = doc(db, collectionName, user.uid);
                 const userDoc = await getDoc(userDocRef);
+                
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     setFullName(userData.fullName || '');
@@ -49,22 +52,25 @@ export default function ProfilePage() {
                     setAddress(userData.address || '');
                 }
 
-                const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
-                const querySnapshot = await getDocs(ordersQuery);
-                const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-                setOrderHistory(orders);
+                // Only fetch orders for regular users/admins, not delivery partners
+                if (!isDeliveryPartner) {
+                    const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
+                    const querySnapshot = await getDocs(ordersQuery);
+                    const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+                    setOrderHistory(orders);
+                }
             }
         };
 
         fetchUserData();
 
-    }, [isLoggedIn, router, user]);
+    }, [isLoggedIn, router, user, isDeliveryPartner]);
 
     const handleSaveChanges = async () => {
         if (user) {
-            const userDocRef = doc(db, "users", user.uid);
+            const collectionName = isDeliveryPartner ? "deliveryPartners" : "users";
+            const userDocRef = doc(db, collectionName, user.uid);
             try {
-                // Use setDoc with merge:true to create or update the document
                 await setDoc(userDocRef, {
                     fullName,
                     email,
@@ -123,7 +129,7 @@ export default function ProfilePage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email Address</Label>
-                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="address">Saved Address</Label>
@@ -134,44 +140,46 @@ export default function ProfilePage() {
                     </Card>
                 </div>
 
-                <div className="md:col-span-2">
-                    <Card className="shadow-lg">
-                        <CardHeader>
-                            <CardTitle>Order History</CardTitle>
-                            <CardDescription>A list of your past bookings.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Order ID</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Item</TableHead>
-                                        <TableHead>Total</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {orderHistory.length > 0 ? orderHistory.map((order) => (
-                                        <TableRow key={order.id}>
-                                            <TableCell className="font-medium">{order.orderId}</TableCell>
-                                            <TableCell>{order.createdAt.toDate().toLocaleDateString()}</TableCell>
-                                            <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
-                                            <TableCell>₹{order.total.toFixed(2)}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary">{order.status}</Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
+                {!isDeliveryPartner && (
+                    <div className="md:col-span-2">
+                        <Card className="shadow-lg">
+                            <CardHeader>
+                                <CardTitle>Order History</CardTitle>
+                                <CardDescription>A list of your past bookings.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center">You have no past orders.</TableCell>
+                                            <TableHead>Order ID</TableHead>
+                                            <TableHead>Date</TableHead>
+                                            <TableHead>Item</TableHead>
+                                            <TableHead>Total</TableHead>
+                                            <TableHead>Status</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
-                </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {orderHistory.length > 0 ? orderHistory.map((order) => (
+                                            <TableRow key={order.id}>
+                                                <TableCell className="font-medium">{order.orderId}</TableCell>
+                                                <TableCell>{order.createdAt.toDate().toLocaleDateString()}</TableCell>
+                                                <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
+                                                <TableCell>₹{order.total.toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary">{order.status}</Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center">You have no past orders.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
             </div>
         </div>
     );

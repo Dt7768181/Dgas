@@ -18,7 +18,7 @@ export default function DeliveryPartnerSignupPage() {
 
     const handleSignup = (e: React.FormEvent) => {
         e.preventDefault();
-        signup(email, password, fullName, true); // isDeliveryPartner = true
+        signup(email, password, fullName, true); // isDeliveryPartnerSignup = true
     }
 
   return (

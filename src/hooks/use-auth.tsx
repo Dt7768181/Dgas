@@ -40,15 +40,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
             if (user) {
+                // Check both collections to determine the user's role
                 const userDocRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    setIsAdmin(userData.role === 'admin');
-                    setIsDeliveryPartner(userData.role === 'deliveryPartner');
+                 if (userDoc.exists() && userDoc.data().role === 'admin') {
+                    setIsAdmin(true);
+                    setIsDeliveryPartner(false);
+                    return;
+                }
+
+                const partnerDocRef = doc(db, "deliveryPartners", user.uid);
+                const partnerDoc = await getDoc(partnerDocRef);
+                if (partnerDoc.exists()) {
+                    setIsDeliveryPartner(true);
+                    setIsAdmin(false);
                 } else {
-                     setIsAdmin(false);
-                     setIsDeliveryPartner(false);
+                    setIsDeliveryPartner(false);
+                    // Check for admin role in users collection if not a partner
+                    if(userDoc.exists()) {
+                         setIsAdmin(userDoc.data().role === 'admin');
+                    } else {
+                        setIsAdmin(false);
+                    }
                 }
             } else {
                 setIsAdmin(false);
@@ -64,15 +77,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const loggedInUser = userCredential.user;
             
-            const userDocRef = doc(db, "users", loggedInUser.uid);
-            const userDoc = await getDoc(userDocRef);
             let userIsAdmin = false;
             let userIsDeliveryPartner = false;
 
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                userIsAdmin = userData.role === 'admin';
-                userIsDeliveryPartner = userData.role === 'deliveryPartner';
+            if (isDeliveryPartnerLogin) {
+                 const partnerDocRef = doc(db, "deliveryPartners", loggedInUser.uid);
+                 const partnerDoc = await getDoc(partnerDocRef);
+                 if (partnerDoc.exists()) {
+                     userIsDeliveryPartner = true;
+                 }
+            } else {
+                const userDocRef = doc(db, "users", loggedInUser.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    userIsAdmin = userDoc.data().role === 'admin';
+                }
             }
             
             toast({
@@ -99,7 +118,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                      await signOut(auth);
                     toast({
                         title: "Access Denied",
-                        description: "You are not authorized to access the delivery portal.",
+                        description: "You are not a registered delivery partner.",
                         variant: "destructive",
                     });
                     return null;
@@ -121,36 +140,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const signup = async (email:string, password:string, fullName: string, isDeliveryPartner = false) => {
+    const signup = async (email:string, password:string, fullName: string, isDeliveryPartnerSignup = false) => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             
-            const role = isDeliveryPartner ? 'deliveryPartner' : 'user';
-
-            await setDoc(doc(db, "users", user.uid), {
-                uid: user.uid,
-                email: user.email,
-                fullName: fullName,
-                createdAt: new Date(),
-                role: role,
-            });
-
-            toast({
-                title: "Signup Successful!",
-                description: "Your account has been created.",
-            });
-
-            if (isDeliveryPartner) {
+            if (isDeliveryPartnerSignup) {
+                 await setDoc(doc(db, "deliveryPartners", user.uid), {
+                    uid: user.uid,
+                    email: user.email,
+                    fullName: fullName,
+                    createdAt: new Date(),
+                    role: 'deliveryPartner'
+                });
+                toast({
+                    title: "Partner Signup Successful!",
+                    description: "Your delivery partner account has been created.",
+                });
                 router.push('/delivery');
+
             } else {
+                await setDoc(doc(db, "users", user.uid), {
+                    uid: user.uid,
+                    email: user.email,
+                    fullName: fullName,
+                    createdAt: new Date(),
+                    role: 'user', // or 'admin' based on logic
+                });
+                toast({
+                    title: "Signup Successful!",
+                    description: "Your account has been created.",
+                });
                 router.push('/booking');
             }
+
         } catch (error: any) {
              console.error("Signup error:", error);
+             let errorMessage = error.message;
+             if (error.code === 'auth/email-already-in-use') {
+                 errorMessage = "This email is already registered. Please login or use a different email.";
+             }
             toast({
                 title: "Signup Failed",
-                description: error.message,
+                description: errorMessage,
                 variant: "destructive",
             });
         }
