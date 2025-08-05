@@ -69,77 +69,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const login = async (email:string, password:string, isAdminLogin = false, isDeliveryPartnerLogin = false) => {
         try {
-            if (isAdminLogin) {
-                const q = query(collection(db, "admin"), where("email", "==", email));
-                const querySnapshot = await getDocs(q);
-                if (querySnapshot.empty) {
-                     toast({ title: "Login Failed", description: "This email is not registered as an admin.", variant: "destructive" });
-                     return null;
-                }
-            } else if (isDeliveryPartnerLogin) {
-                const q = query(collection(db, "deliveryPartners"), where("email", "==", email));
-                const querySnapshot = await getDocs(q);
-                if (querySnapshot.empty) {
-                     toast({ title: "Login Failed", description: "This email is not registered as a delivery partner.", variant: "destructive" });
-                     return null;
-                }
-            } else { 
-                 const q = query(collection(db, "users"), where("email", "==", email));
-                 const querySnapshot = await getDocs(q);
-                 if (querySnapshot.empty) {
-                     toast({ title: "Login Failed", description: "This email is not registered as a user.", variant: "destructive" });
-                     return null;
-                 }
-            }
-
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const loggedInUser = userCredential.user;
             
             let userIsAdmin = false;
             let userIsDeliveryPartner = false;
+            let userIsRegularUser = false;
             
-            if (isAdminLogin) {
-                const adminDocRef = doc(db, "admin", loggedInUser.uid);
-                const adminDoc = await getDoc(adminDocRef);
-                userIsAdmin = adminDoc.exists();
-            } else if (isDeliveryPartnerLogin) {
-                 const partnerDocRef = doc(db, "deliveryPartners", loggedInUser.uid);
-                 const partnerDoc = await getDoc(partnerDocRef);
-                 userIsDeliveryPartner = partnerDoc.exists();
+            // Check admin collection
+            const adminDocRef = doc(db, "admin", loggedInUser.uid);
+            const adminDoc = await getDoc(adminDocRef);
+            if (adminDoc.exists()) {
+                userIsAdmin = true;
             }
-            
-            toast({
-                title: "Login Successful!",
-                description: "Welcome back.",
-            });
 
+            // Check delivery partner collection
+            const partnerDocRef = doc(db, "deliveryPartners", loggedInUser.uid);
+            const partnerDoc = await getDoc(partnerDocRef);
+            if (partnerDoc.exists()) {
+                userIsDeliveryPartner = true;
+            }
+
+            // Check user collection
+            const userDocRef = doc(db, "users", loggedInUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                userIsRegularUser = true;
+            }
+
+            // Route based on where they are logging in from and their role
             if (isAdminLogin) {
                  if (userIsAdmin) {
+                    toast({ title: "Login Successful!", description: "Welcome back, Admin." });
                     router.push('/admin/dashboard');
                  } else {
                     await signOut(auth);
-                    toast({
-                        title: "Access Denied",
-                        description: "You are not authorized to access the admin panel.",
-                        variant: "destructive",
-                    });
+                    toast({ title: "Access Denied", description: "You are not authorized to access the admin panel.", variant: "destructive" });
                     return null;
                  }
             } else if (isDeliveryPartnerLogin) {
                 if (userIsDeliveryPartner) {
+                    toast({ title: "Login Successful!", description: "Welcome back, Partner." });
                     router.push('/delivery');
                 } else {
                      await signOut(auth);
-                    toast({
-                        title: "Access Denied",
-                        description: "You are not a registered delivery partner.",
-                        variant: "destructive",
-                    });
+                    toast({ title: "Access Denied", description: "You are not a registered delivery partner.", variant: "destructive" });
                     return null;
                 }
             }
-            else {
-                router.push('/booking');
+            else { // Regular user login
+                if (userIsRegularUser) {
+                    toast({ title: "Login Successful!", description: "Welcome back." });
+                    router.push('/booking');
+                } else {
+                    await signOut(auth);
+                    toast({ title: "Access Denied", description: "Please use the appropriate portal to log in.", variant: "destructive" });
+                    return null;
+                }
             }
             return { user: loggedInUser, isAdmin: userIsAdmin, isDeliveryPartner: userIsDeliveryPartner };
 
