@@ -18,11 +18,23 @@ export default function WelcomePage() {
                     Your trusted partner for fast and reliable gas cylinder delivery. Get started by booking your cylinder now.
                 </p>
             </div>
-            <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                <Link href="/booking">
-                    Proceed to Booking
-                </Link>
-            </Button>
+            <div className="flex flex-col gap-4 sm:flex-row">
+                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Link href="/booking">
+                        Proceed to Booking
+                    </Link>
+                </Button>
+                 <Button asChild size="lg" variant="outline">
+                    <Link href="/login">
+                        Login
+                    </Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary">
+                    <Link href="/signup">
+                        Sign Up
+                    </Link>
+                </Button>
+            </div>
         </div>
     </div>
   );
