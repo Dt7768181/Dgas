@@ -102,8 +102,6 @@ export function DeliveryManager() {
                                             <SelectItem value="Confirmed">Confirmed</SelectItem>
                                             <SelectItem value="Processing">Processing</SelectItem>
                                             <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
-                                            <SelectItem value="Delivered">Delivered</SelectItem>
-                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </TableCell>
