@@ -12,8 +12,8 @@ import { useState } from "react";
 
 export default function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
-  const [email, setEmail] = useState("john.doe@example.com");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
