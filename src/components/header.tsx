@@ -31,7 +31,7 @@ interface Promotion {
 export function Header() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [promotions, setPromotions] = useState<Promotion[]>([]);
-    const { user, isLoggedIn, logout, isAdmin } = useAuth();
+    const { user, isLoggedIn, logout, isAdmin, isDeliveryPartner } = useAuth();
     const [mounted, setMounted] = useState(false);
     
     useEffect(() => {
@@ -82,6 +82,16 @@ export function Header() {
                     </Button>
                  );
             }
+            if (isDeliveryPartner) {
+                return (
+                    <Button variant="ghost" asChild>
+                        <Link href="/delivery">
+                            <Truck className="mr-2 h-4 w-4" />
+                            Delivery Portal
+                        </Link>
+                    </Button>
+                )
+            }
             return (
                 <>
                     <Button variant="ghost" asChild>
@@ -109,7 +119,7 @@ export function Header() {
                     </Link>
                 </Button>
                 <Button variant="ghost" asChild>
-                    <Link href="/delivery">
+                    <Link href="/delivery/login">
                         <Truck className="mr-2 h-4 w-4" />
                         Delivery
                     </Link>
