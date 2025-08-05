@@ -42,7 +42,7 @@ export function Header() {
             title: "Logged Out",
             description: "You have been successfully logged out.",
         });
-        router.push('/');
+        router.push('/login');
     }
 
     return (
