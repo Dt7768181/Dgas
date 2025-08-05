@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { Header } from '@/components/header';
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from '@/hooks/use-auth';
+import { Providers } from './providers';
 
 const fontBody = Inter({
   subsets: ['latin'],
@@ -40,13 +39,10 @@ export default function RootLayout({
           fontHeadline.variable
         )}
       >
-        <AuthProvider>
-            <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            </div>
+        <Providers>
+            {children}
             <Toaster />
-        </AuthProvider>
+        </Providers>
       </body>
     </html>
   );

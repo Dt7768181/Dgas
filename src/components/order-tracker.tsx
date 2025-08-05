@@ -1,20 +1,37 @@
+
 import { cn } from "@/lib/utils";
 import { Home, PackageCheck, Truck, Cog } from "lucide-react";
+import { useMemo } from "react";
 
-const steps = [
-    { name: "Order Confirmed", icon: PackageCheck, status: "completed" },
-    { name: "Processing", icon: Cog, status: "completed" },
-    { name: "Out for Delivery", icon: Truck, status: "active" },
-    { name: "Delivered", icon: Home, status: "pending" },
+const stepConfig = [
+    { name: "Order Confirmed", icon: PackageCheck, status: "Confirmed" },
+    { name: "Processing", icon: Cog, status: "Processing" },
+    { name: "Out for Delivery", icon: Truck, status: "Out for Delivery" },
+    { name: "Delivered", icon: Home, status: "Delivered" },
 ];
 
-export function OrderTracker() {
+export function OrderTracker({ currentStatus }: { currentStatus: string }) {
+    const steps = useMemo(() => {
+        const currentStepIndex = stepConfig.findIndex(s => s.status === currentStatus);
+        
+        return stepConfig.map((step, index) => {
+            let status = 'pending';
+            if (index < currentStepIndex) {
+                status = 'completed';
+            } else if (index === currentStepIndex) {
+                status = 'active';
+            }
+            return { ...step, visualStatus: status };
+        });
+
+    }, [currentStatus]);
+
     return (
         <div className="w-full">
             <ol className="relative grid grid-cols-4 text-center">
                 {steps.map((step, index) => {
-                    const isCompleted = step.status === 'completed';
-                    const isActive = step.status === 'active';
+                    const isCompleted = step.visualStatus === 'completed';
+                    const isActive = step.visualStatus === 'active';
                     const isLastStep = index === steps.length - 1;
 
                     return (
