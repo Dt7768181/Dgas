@@ -15,7 +15,7 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "./use-toast";
 import { useRouter } from "next/navigation";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 
 interface AuthContextType {
     user: User | null;
@@ -39,9 +39,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
             if (user) {
-                const userDocRef = doc(db, "users", user.uid);
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists() && userDoc.data().role === 'admin') {
+                const adminQuery = query(collection(db, "admin"), where("email", "==", user.email));
+                const adminSnapshot = await getDocs(adminQuery);
+                if (!adminSnapshot.empty) {
                     setIsAdmin(true);
                 } else {
                     setIsAdmin(false);
@@ -59,9 +59,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const loggedInUser = userCredential.user;
             
-            const userDocRef = doc(db, "users", loggedInUser.uid);
-            const userDoc = await getDoc(userDocRef);
-            const userIsAdmin = userDoc.exists() && userDoc.data().role === 'admin';
+            const adminQuery = query(collection(db, "admin"), where("email", "==", loggedInUser.email));
+            const adminSnapshot = await getDocs(adminQuery);
+            const userIsAdmin = !adminSnapshot.empty;
 
             toast({
                 title: "Login Successful!",
