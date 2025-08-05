@@ -1,18 +1,104 @@
+
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState } from "react";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, updateDoc, collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
-const orderHistory = [
-    { id: "#DGAS12345", date: "2024-05-20", item: "Family Cylinder", total: "₹850.00", status: "Delivered" },
-    { id: "#DGAS12301", date: "2024-04-15", item: "Family Cylinder", total: "₹825.00", status: "Delivered" },
-    { id: "#DGAS11998", date: "2024-03-11", item: "Single Cylinder", total: "₹450.00", status: "Delivered" },
-];
+interface Order {
+    id: string;
+    orderId: string;
+    cylinderType: string;
+    total: number;
+    status: string;
+    createdAt: Timestamp;
+}
 
 export default function ProfilePage() {
+    const { user, isLoggedIn } = useAuth();
+    const router = useRouter();
+    const { toast } = useToast();
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [address, setAddress] = useState('');
+    const [orderHistory, setOrderHistory] = useState<Order[]>([]);
+    
+    useEffect(() => {
+        if (!isLoggedIn) {
+            router.push('/login');
+            return;
+        }
+
+        const fetchUserData = async () => {
+            if (user) {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    setFullName(userData.fullName || '');
+                    setEmail(userData.email || '');
+                    setAddress(userData.address || "123 Main St, Anytown");
+                }
+
+                const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(ordersQuery);
+                const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+                setOrderHistory(orders);
+            }
+        };
+
+        fetchUserData();
+
+    }, [isLoggedIn, router, user]);
+
+    const handleSaveChanges = async () => {
+        if (user) {
+            const userDocRef = doc(db, "users", user.uid);
+            try {
+                await updateDoc(userDocRef, {
+                    fullName,
+                    email,
+                    address,
+                });
+                toast({
+                    title: "Success",
+                    description: "Your profile has been updated.",
+                });
+            } catch (error) {
+                console.error("Error updating profile: ", error);
+                 toast({
+                    title: "Error",
+                    description: "Failed to update profile.",
+                    variant: "destructive",
+                });
+            }
+        }
+    };
+
+    const formatCylinderType = (type: string) => {
+        switch(type) {
+            case 'single': return 'Single (5kg)';
+            case 'family': return 'Family (14.2kg)';
+            case 'commercial': return 'Commercial (19kg)';
+            default: return 'Unknown';
+        }
+    }
+
+
+    if (!isLoggedIn || !user) {
+        return <p>Loading...</p>; // Or a loading spinner
+    }
+
+
     return (
         <div className="container mx-auto max-w-4xl px-4 py-12">
             <div className="space-y-4 mb-8">
@@ -32,17 +118,17 @@ export default function ProfilePage() {
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Full Name</Label>
-                                <Input id="name" defaultValue="John Doe" />
+                                <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email Address</Label>
-                                <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="address">Saved Address</Label>
-                                <Input id="address" defaultValue="123 Main St, Anytown" />
+                                <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
                             </div>
-                            <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Save Changes</Button>
+                            <Button onClick={handleSaveChanges} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Save Changes</Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -65,17 +151,21 @@ export default function ProfilePage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {orderHistory.map((order) => (
+                                    {orderHistory.length > 0 ? orderHistory.map((order) => (
                                         <TableRow key={order.id}>
-                                            <TableCell className="font-medium">{order.id}</TableCell>
-                                            <TableCell>{order.date}</TableCell>
-                                            <TableCell>{order.item}</TableCell>
-                                            <TableCell>{order.total}</TableCell>
+                                            <TableCell className="font-medium">{order.orderId}</TableCell>
+                                            <TableCell>{order.createdAt.toDate().toLocaleDateString()}</TableCell>
+                                            <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
+                                            <TableCell>₹{order.total.toFixed(2)}</TableCell>
                                             <TableCell>
                                                 <Badge variant="secondary">{order.status}</Badge>
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center">You have no past orders.</TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </CardContent>

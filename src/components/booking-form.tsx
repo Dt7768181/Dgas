@@ -62,8 +62,6 @@ export function BookingForm() {
 
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values);
-
         if (!isLoggedIn) {
             toast({
                 title: "Login Required",
@@ -73,6 +71,9 @@ export function BookingForm() {
             router.push('/login');
             return;
         }
+
+        // Store booking details in session storage to pass to payment page
+        sessionStorage.setItem("bookingDetails", JSON.stringify(values));
 
         toast({
             title: "Booking Initiated",
@@ -203,7 +204,7 @@ export function BookingForm() {
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select a slot and price" />
+                                                <SelectValue placeholder="Select a slot" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>

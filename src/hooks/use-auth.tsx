@@ -12,15 +12,16 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { useToast } from "./use-toast";
 import { useRouter } from "next/navigation";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 interface AuthContextType {
     user: User | null;
     isLoggedIn: boolean;
     login: (email:string, password:string) => Promise<void>;
-    signup: (email:string, password:string) => Promise<void>;
+    signup: (email:string, password:string, fullName: string) => Promise<void>;
     logout: () => Promise<void>;
     loginWithGoogle: () => Promise<void>;
 }
@@ -58,9 +59,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const signup = async (email:string, password:string) => {
+    const signup = async (email:string, password:string, fullName: string) => {
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            
+            // Store user data in Firestore
+            await setDoc(doc(db, "users", user.uid), {
+                uid: user.uid,
+                email: user.email,
+                fullName: fullName,
+                createdAt: new Date(),
+            });
+
             toast({
                 title: "Signup Successful!",
                 description: "Your account has been created.",
@@ -79,7 +90,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const loginWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (!userDoc.exists()) {
+                 await setDoc(userDocRef, {
+                    uid: user.uid,
+                    email: user.email,
+                    fullName: user.displayName,
+                    createdAt: new Date(),
+                });
+            }
+
              toast({
                 title: "Google Login Successful!",
                 description: "Welcome!",
