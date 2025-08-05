@@ -33,7 +33,7 @@ export function DeliveryManager() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const ordersQuery = query(collectionGroup(db, 'orders'), orderBy('createdAt', 'desc'));
+        const ordersQuery = query(collectionGroup(db, 'orders'), orderBy('status', 'asc'));
         
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const fetchedOrders = snapshot.docs.map(doc => {
