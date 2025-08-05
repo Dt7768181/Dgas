@@ -19,6 +19,7 @@ export default function Home() {
               width={600}
               height={400}
               className="rounded-lg object-cover shadow-lg"
+              data-ai-hint="gas delivery"
             />
           </div>
         </div>
