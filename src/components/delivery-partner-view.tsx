@@ -32,10 +32,8 @@ export function DeliveryPartnerView() {
     const [orders, setOrders] = useState<Order[]>([]);
 
     useEffect(() => {
-        const ordersQuery = query(
-            collectionGroup(db, 'orders'), 
-            where('status', '==', 'Out for Delivery')
-        );
+        // Query all orders without filtering by status to avoid the index requirement.
+        const ordersQuery = query(collectionGroup(db, 'orders'));
         
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const fetchedOrders = snapshot.docs.map(doc => {
@@ -47,7 +45,9 @@ export function DeliveryPartnerView() {
                     ...data 
                 } as Order;
             });
-            setOrders(fetchedOrders);
+            // Filter the orders on the client-side
+            const outForDeliveryOrders = fetchedOrders.filter(order => order.status === 'Out for Delivery');
+            setOrders(outForDeliveryOrders);
         });
 
         return () => unsubscribe();
