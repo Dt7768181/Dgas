@@ -21,7 +21,7 @@ export function InventoryManager() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const stockDocRef = doc(db, "inventory", "gasCylinders");
+        const stockDocRef = doc(db, "inventory", "stock");
         const unsubscribe = onSnapshot(stockDocRef, (doc) => {
             if (doc.exists()) {
                 setStock(doc.data() as Stock);
@@ -33,7 +33,7 @@ export function InventoryManager() {
     }, []);
 
     const handleStockChange = async (type: keyof Stock, amount: number) => {
-        const stockDocRef = doc(db, "inventory", "gasCylinders");
+        const stockDocRef = doc(db, "inventory", "stock");
         try {
             // Check if stock will go below zero
             const currentDoc = await getDoc(stockDocRef);
