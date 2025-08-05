@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collectionGroup, onSnapshot, query, orderBy, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { collectionGroup, onSnapshot, query, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
@@ -33,7 +33,7 @@ export function DeliveryManager() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const ordersQuery = query(collectionGroup(db, 'orders'), orderBy('status', 'asc'));
+        const ordersQuery = query(collectionGroup(db, 'orders'));
         
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const fetchedOrders = snapshot.docs.map(doc => {
