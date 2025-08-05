@@ -21,7 +21,7 @@ interface AuthContextType {
     user: User | null;
     isLoggedIn: boolean;
     isAdmin: boolean;
-    login: (email:string, password:string) => Promise<void>;
+    login: (email:string, password:string, isAdminLogin?: boolean) => Promise<{ user: User, isAdmin: boolean} | null>;
     signup: (email:string, password:string, fullName: string) => Promise<void>;
     logout: () => Promise<void>;
     loginWithGoogle: () => Promise<void>;
@@ -54,14 +54,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => unsubscribe();
     }, []);
 
-    const login = async (email:string, password:string) => {
+    const login = async (email:string, password:string, isAdminLogin = false) => {
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const loggedInUser = userCredential.user;
+            
+            const userDocRef = doc(db, "users", loggedInUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            const userIsAdmin = userDoc.exists() && userDoc.data().role === 'admin';
+
             toast({
                 title: "Login Successful!",
                 description: "Welcome back.",
             });
-            router.push('/profile');
+
+            if (isAdminLogin) {
+                 if (userIsAdmin) {
+                    router.push('/admin/dashboard');
+                 } else {
+                    // Not an admin, but tried admin login. Log them out.
+                    await signOut(auth);
+                    toast({
+                        title: "Access Denied",
+                        description: "You are not authorized to access the admin panel.",
+                        variant: "destructive",
+                    });
+                    return null;
+                 }
+            } else {
+                router.push('/profile');
+            }
+            return { user: loggedInUser, isAdmin: userIsAdmin };
+
         } catch (error: any) {
             console.error("Login error:", error);
             toast({
@@ -69,6 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 description: error.message,
                 variant: "destructive",
             });
+            return null;
         }
     };
     

@@ -35,6 +35,13 @@ export default function WelcomePage() {
                     </Link>
                 </Button>
             </div>
+             <div className="absolute bottom-4 right-4">
+                <Button asChild variant="link" className="text-xs text-muted-foreground">
+                    <Link href="/admin/login">
+                        Admin Login
+                    </Link>
+                </Button>
+            </div>
         </div>
     </div>
   );
