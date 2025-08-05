@@ -10,23 +10,28 @@ import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminLoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // The login function from useAuth will automatically check for admin role
-    const user = await login(email, password, true);
-    if (user?.isAdmin) {
+    const result = await login(email, password, true); // Pass true for isAdminLogin
+    if (result?.isAdmin) {
       router.push('/admin/dashboard');
+    } else if (result === null) {
+        // The useAuth hook already shows an "Access Denied" toast.
+        // You could add additional logic here if needed.
     } else {
-        // If a non-admin tries to log in here, you might want to show an error
-        // or redirect them to the regular user profile page.
-        // For now, the hook handles the redirection for non-admins to /profile.
+        // This case would be a regular user who successfully signed in
+        // but isn't an admin. The hook will have logged them out.
+        // For clarity, we can ensure they are redirected away.
+        router.push('/login');
     }
   };
 
