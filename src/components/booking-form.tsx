@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,7 +51,7 @@ export function BookingForm() {
         });
         // Simulate payment and redirect
         setTimeout(() => {
-            router.push('/track');
+            router.push('/payment');
         }, 1500)
     }
 
