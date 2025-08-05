@@ -110,23 +110,32 @@ export function BookingForm() {
                                             defaultValue={field.value}
                                             className="flex flex-col space-y-1"
                                         >
-                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                <FormControl>
-                                                    <RadioGroupItem value="single" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">Single (5kg)</FormLabel>
+                                            <FormItem className="flex items-center justify-between space-x-3 space-y-0">
+                                                <div className="flex items-center space-x-3">
+                                                    <FormControl>
+                                                        <RadioGroupItem value="single" />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">Single (5kg)</FormLabel>
+                                                </div>
+                                                <span className="text-sm font-medium">₹450</span>
                                             </FormItem>
-                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                <FormControl>
-                                                    <RadioGroupItem value="family" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">Family (14.2kg)</FormLabel>
+                                            <FormItem className="flex items-center justify-between space-x-3 space-y-0">
+                                                 <div className="flex items-center space-x-3">
+                                                    <FormControl>
+                                                        <RadioGroupItem value="family" />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">Family (14.2kg)</FormLabel>
+                                                </div>
+                                                <span className="text-sm font-medium">₹850</span>
                                             </FormItem>
-                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                <FormControl>
-                                                    <RadioGroupItem value="commercial" />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">Commercial (19kg)</FormLabel>
+                                            <FormItem className="flex items-center justify-between space-x-3 space-y-0">
+                                                 <div className="flex items-center space-x-3">
+                                                    <FormControl>
+                                                        <RadioGroupItem value="commercial" />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">Commercial (19kg)</FormLabel>
+                                                </div>
+                                                <span className="text-sm font-medium">₹1200</span>
                                             </FormItem>
                                         </RadioGroup>
                                     </FormControl>
@@ -201,10 +210,9 @@ export function BookingForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="afternoon">2 PM - 4 PM (₹850)</SelectItem>
-                                            <SelectItem value="evening">6 PM - 8 PM (₹850)</SelectItem>
-                                            <SelectItem value="morning">10 AM - 12 PM (₹800)</SelectItem>
-                                            <SelectItem value="afternoon-next-day">2 PM - 4 PM (₹800)</SelectItem>
+                                            <SelectItem value="morning">10 AM - 12 PM (₹50 extra)</SelectItem>
+                                            <SelectItem value="afternoon">2 PM - 4 PM</SelectItem>
+                                            <SelectItem value="evening">6 PM - 8 PM</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
