@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
 const cylinderPrices: { [key: string]: number } = {
@@ -55,7 +55,8 @@ export default function PaymentPage() {
 
         try {
             // Save order to Firestore
-            await addDoc(collection(db, "users", user.uid, "orders"), {
+            const userOrdersCollection = collection(db, "users", user.uid, "orders");
+            await addDoc(userOrdersCollection, {
                 orderId: orderId,
                 ...bookingDetails,
                 deliveryDate: new Date(bookingDetails.deliveryDate), // Convert string back to Date
