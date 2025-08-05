@@ -24,7 +24,7 @@ interface Order {
 }
 
 export default function ProfilePage() {
-    const { user, isLoggedIn, isDeliveryPartner } = useAuth();
+    const { user, isLoggedIn, isDeliveryPartner, isAdmin } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [fullName, setFullName] = useState('');
@@ -40,8 +40,13 @@ export default function ProfilePage() {
 
         const fetchUserData = async () => {
             if (user) {
-                // Determine the correct collection based on the user's role
-                const collectionName = isDeliveryPartner ? "deliveryPartners" : "users";
+                let collectionName = "users";
+                if (isDeliveryPartner) {
+                    collectionName = "deliveryPartners";
+                } else if (isAdmin) {
+                    collectionName = "admin";
+                }
+
                 const userDocRef = doc(db, collectionName, user.uid);
                 const userDoc = await getDoc(userDocRef);
                 
@@ -52,8 +57,8 @@ export default function ProfilePage() {
                     setAddress(userData.address || '');
                 }
 
-                // Only fetch orders for regular users/admins, not delivery partners
-                if (!isDeliveryPartner) {
+                // Only fetch orders for regular users, not delivery partners or admins
+                if (!isDeliveryPartner && !isAdmin) {
                     const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
                     const querySnapshot = await getDocs(ordersQuery);
                     const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
@@ -64,11 +69,17 @@ export default function ProfilePage() {
 
         fetchUserData();
 
-    }, [isLoggedIn, router, user, isDeliveryPartner]);
+    }, [isLoggedIn, router, user, isDeliveryPartner, isAdmin]);
 
     const handleSaveChanges = async () => {
         if (user) {
-            const collectionName = isDeliveryPartner ? "deliveryPartners" : "users";
+            let collectionName = "users";
+            if (isDeliveryPartner) {
+                collectionName = "deliveryPartners";
+            } else if (isAdmin) {
+                collectionName = "admin";
+            }
+            
             const userDocRef = doc(db, collectionName, user.uid);
             try {
                 await setDoc(userDocRef, {
@@ -140,7 +151,7 @@ export default function ProfilePage() {
                     </Card>
                 </div>
 
-                {!isDeliveryPartner && (
+                {!isDeliveryPartner && !isAdmin && (
                     <div className="md:col-span-2">
                         <Card className="shadow-lg">
                             <CardHeader>

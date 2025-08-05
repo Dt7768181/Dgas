@@ -41,9 +41,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(user);
             if (user) {
                 // Check both collections to determine the user's role
-                const userDocRef = doc(db, "users", user.uid);
-                const userDoc = await getDoc(userDocRef);
-                 if (userDoc.exists() && userDoc.data().role === 'admin') {
+                const adminDocRef = doc(db, "admin", user.uid);
+                const adminDoc = await getDoc(adminDocRef);
+                 if (adminDoc.exists()) {
                     setIsAdmin(true);
                     setIsDeliveryPartner(false);
                     return;
@@ -56,12 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setIsAdmin(false);
                 } else {
                     setIsDeliveryPartner(false);
-                    // Check for admin role in users collection if not a partner
-                    if(userDoc.exists()) {
-                         setIsAdmin(userDoc.data().role === 'admin');
-                    } else {
-                        setIsAdmin(false);
-                    }
+                    setIsAdmin(false);
                 }
             } else {
                 setIsAdmin(false);
@@ -74,19 +69,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const login = async (email:string, password:string, isAdminLogin = false, isDeliveryPartnerLogin = false) => {
         try {
-             // Role-specific checks before login
-            if (isDeliveryPartnerLogin) {
+            if (isAdminLogin) {
+                const q = query(collection(db, "admin"), where("email", "==", email));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                     toast({ title: "Login Failed", description: "This email is not registered as an admin.", variant: "destructive" });
+                     return null;
+                }
+            } else if (isDeliveryPartnerLogin) {
                 const q = query(collection(db, "deliveryPartners"), where("email", "==", email));
                 const querySnapshot = await getDocs(q);
                 if (querySnapshot.empty) {
                      toast({ title: "Login Failed", description: "This email is not registered as a delivery partner.", variant: "destructive" });
                      return null;
                 }
-            } else { // For regular users and admins
+            } else { 
                  const q = query(collection(db, "users"), where("email", "==", email));
                  const querySnapshot = await getDocs(q);
                  if (querySnapshot.empty) {
-                     toast({ title: "Login Failed", description: "This email is not registered as a user. Are you a delivery partner?", variant: "destructive" });
+                     toast({ title: "Login Failed", description: "This email is not registered as a user.", variant: "destructive" });
                      return null;
                  }
             }
@@ -96,19 +97,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             
             let userIsAdmin = false;
             let userIsDeliveryPartner = false;
-
-            if (isDeliveryPartnerLogin) {
+            
+            if (isAdminLogin) {
+                const adminDocRef = doc(db, "admin", loggedInUser.uid);
+                const adminDoc = await getDoc(adminDocRef);
+                userIsAdmin = adminDoc.exists();
+            } else if (isDeliveryPartnerLogin) {
                  const partnerDocRef = doc(db, "deliveryPartners", loggedInUser.uid);
                  const partnerDoc = await getDoc(partnerDocRef);
-                 if (partnerDoc.exists()) {
-                     userIsDeliveryPartner = true;
-                 }
-            } else {
-                const userDocRef = doc(db, "users", loggedInUser.uid);
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                    userIsAdmin = userDoc.data().role === 'admin';
-                }
+                 userIsDeliveryPartner = partnerDoc.exists();
             }
             
             toast({
@@ -174,7 +171,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     email: user.email,
                     fullName: fullName,
                     createdAt: new Date(),
-                    role: 'deliveryPartner'
                 });
                 toast({
                     title: "Partner Signup Successful!",
@@ -188,13 +184,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     email: user.email,
                     fullName: fullName,
                     createdAt: new Date(),
-                    role: 'user', // or 'admin' based on logic
                 });
                 toast({
                     title: "Signup Successful!",
                     description: "Your account has been created.",
                 });
-                router.push('/booking');
+                router.push('/profile');
             }
 
         } catch (error: any) {
