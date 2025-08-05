@@ -11,29 +11,55 @@ import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "./theme-toggle";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, orderBy, Timestamp } from "firebase/firestore";
 
-const initialNotifications = [
-    { title: "Delivery Update", description: "Your order #12345 is out for delivery.", time: "5m ago" },
-    { title: "Booking Confirmed", description: "Your booking for a family cylinder is confirmed.", time: "1h ago" },
-];
+interface Notification {
+    id: string;
+    title: string;
+    description: string;
+    createdAt: Timestamp;
+}
 
-const initialPromotions = [
-    { title: "New Promotion", description: "Get 10% off on your next booking!", time: "1d ago" },
-];
+interface Promotion {
+    id: string;
+    title: string;
+    description: string;
+    createdAt: Timestamp;
+}
 
 export function Header() {
-    const [notifications, setNotifications] = useState(initialNotifications);
-    const [promotions, setPromotions] = useState(initialPromotions);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [promotions, setPromotions] = useState<Promotion[]>([]);
     const { user, isLoggedIn, logout, isAdmin } = useAuth();
     const [mounted, setMounted] = useState(false);
     
     useEffect(() => {
         setMounted(true);
+
+        const notificationsQuery = query(collection(db, "notifications"), orderBy("createdAt", "desc"));
+        const unsubscribeNotifications = onSnapshot(notificationsQuery, (snapshot) => {
+            const fetchedNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+            setNotifications(fetchedNotifications);
+        });
+
+        const promotionsQuery = query(collection(db, "promotions"), orderBy("createdAt", "desc"));
+        const unsubscribePromotions = onSnapshot(promotionsQuery, (snapshot) => {
+            const fetchedPromotions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Promotion));
+            setPromotions(fetchedPromotions);
+        });
+
+        return () => {
+            unsubscribeNotifications();
+            unsubscribePromotions();
+        };
+
     }, []);
 
     const allItems = [...notifications, ...promotions];
 
     const clearAll = () => {
+        // In a real app, you might want to mark these as read in the DB
         setNotifications([]);
         setPromotions([]);
     }
@@ -45,18 +71,17 @@ export function Header() {
     const renderNavLinks = () => {
         if (!mounted) return null;
 
-        if (isLoggedIn && isAdmin) {
-            return (
-                <Button variant="ghost" asChild>
-                    <Link href="/admin/dashboard">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        Dashboard
-                    </Link>
-                </Button>
-            );
-        }
-
         if (isLoggedIn) {
+            if (isAdmin) {
+                 return (
+                    <Button variant="ghost" asChild>
+                        <Link href="/admin/dashboard">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            Dashboard
+                        </Link>
+                    </Button>
+                );
+            }
             return (
                 <>
                     <Button variant="ghost" asChild>
@@ -90,9 +115,7 @@ export function Header() {
     const renderAuthButton = () => {
         if (!mounted) {
             return (
-                <Button variant="outline" size="icon" disabled>
-                     <LogOut className="h-4 w-4" />
-                </Button>
+                <div className="w-20 h-10 animate-pulse bg-muted rounded-md" />
             )
         }
         if (isLoggedIn) {
@@ -152,8 +175,8 @@ export function Header() {
                                     <TabsTrigger value="promotions">Promotions</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="all" className="max-h-80 overflow-y-auto">
-                                    {allItems.length > 0 ? allItems.map((item, index) => (
-                                        <div key={index} className="grid grid-cols-[25px_1fr] items-start gap-3 py-3">
+                                    {allItems.length > 0 ? allItems.map((item) => (
+                                        <div key={item.id} className="grid grid-cols-[25px_1fr] items-start gap-3 py-3">
                                             <span className="flex h-2 w-2 translate-y-1 rounded-full bg-primary" />
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium leading-none">{item.title}</p>
@@ -163,8 +186,8 @@ export function Header() {
                                     )) : <p className="py-4 text-center text-sm text-muted-foreground">No new notifications.</p>}
                                 </TabsContent>
                                 <TabsContent value="promotions" className="max-h-80 overflow-y-auto">
-                                    {promotions.length > 0 ? promotions.map((item, index) => (
-                                        <div key={index} className="grid grid-cols-[25px_1fr] items-start gap-3 py-3">
+                                    {promotions.length > 0 ? promotions.map((item) => (
+                                        <div key={item.id} className="grid grid-cols-[25px_1fr] items-start gap-3 py-3">
                                             <span className="flex h-2 w-2 translate-y-1 rounded-full bg-accent" />
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium leading-none">{item.title}</p>
