@@ -32,7 +32,7 @@ const formSchema = z.object({
     }),
     address: z.string().min(10, {
         message: "Address must be at least 10 characters.",
-    }),
+    }).optional(),
     deliveryDate: z.date({
         required_error: "A delivery date is required.",
     }),
@@ -47,8 +47,8 @@ const useAuth = () => {
 
     useEffect(() => {
         // In a real app, you'd check for a token or session
-        // For now, we'll simulate being logged out
-        setIsLoggedIn(false); 
+        // For now, we'll simulate being logged in
+        setIsLoggedIn(true); 
     }, []);
 
     return { isLoggedIn };
@@ -62,9 +62,18 @@ export function BookingForm() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            address: "",
+            address: isLoggedIn ? "123 Main St, Anytown" : "",
         },
     });
+
+    useEffect(() => {
+        if (isLoggedIn) {
+            form.setValue("address", "123 Main St, Anytown");
+        } else {
+            form.setValue("address", "");
+        }
+    }, [isLoggedIn, form]);
+
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
@@ -143,19 +152,21 @@ export function BookingForm() {
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="address"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Delivery Address</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g. 123 Main St, Anytown" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        {!isLoggedIn && (
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Delivery Address</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g. 123 Main St, Anytown" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                          <FormField
                             control={form.control}
                             name="deliveryDate"
@@ -187,7 +198,7 @@ export function BookingForm() {
                                         selected={field.value}
                                         onSelect={field.onChange}
                                         disabled={(date) =>
-                                            date < new Date() || date < new Date("1900-01-01")
+                                            date < new Date(new Date().setDate(new Date().getDate() - 1))
                                         }
                                         initialFocus
                                     />
