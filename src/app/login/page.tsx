@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth.tsx";
 import { useState } from "react";
 
 export default function LoginPage() {
@@ -67,6 +67,11 @@ export default function LoginPage() {
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="underline">
               Sign up
+            </Link>
+          </div>
+           <div className="mt-2 text-center text-sm">
+            <Link href="/admin/login" className="underline">
+              Admin Login
             </Link>
           </div>
         </CardContent>
