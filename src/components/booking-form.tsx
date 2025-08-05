@@ -201,10 +201,10 @@ export function BookingForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="today-afternoon">Today, 2 PM - 4 PM ($85)</SelectItem>
-                                            <SelectItem value="today-evening">Today, 6 PM - 8 PM ($85)</SelectItem>
-                                            <SelectItem value="tomorrow-morning">Tomorrow, 10 AM - 12 PM ($80)</SelectItem>
-                                            <SelectItem value="tomorrow-afternoon">Tomorrow, 2 PM - 4 PM ($80)</SelectItem>
+                                            <SelectItem value="afternoon">2 PM - 4 PM ($85)</SelectItem>
+                                            <SelectItem value="evening">6 PM - 8 PM ($85)</SelectItem>
+                                            <SelectItem value="morning">10 AM - 12 PM ($80)</SelectItem>
+                                            <SelectItem value="afternoon-next-day">2 PM - 4 PM ($80)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
