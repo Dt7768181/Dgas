@@ -19,6 +19,7 @@ import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 const formSchema = z.object({
     cylinderType: z.enum(["single", "family", "commercial"], {
@@ -32,9 +33,23 @@ const formSchema = z.object({
     }),
 });
 
+// Mock authentication check
+const useAuth = () => {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        // In a real app, you'd check for a token or session
+        // For now, we'll simulate being logged out
+        setIsLoggedIn(false); 
+    }, []);
+
+    return { isLoggedIn };
+};
+
 export function BookingForm() {
     const { toast } = useToast();
     const router = useRouter();
+    const { isLoggedIn } = useAuth();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -45,11 +60,22 @@ export function BookingForm() {
 
     function onSubmit(values: z.infer<typeof formSchema>) {
         console.log(values);
+
+        if (!isLoggedIn) {
+            toast({
+                title: "Login Required",
+                description: "Please log in to book a cylinder.",
+                variant: "destructive",
+            });
+            router.push('/login');
+            return;
+        }
+
         toast({
             title: "Booking Initiated",
             description: "Proceeding to payment...",
         });
-        // Simulate payment and redirect
+        
         setTimeout(() => {
             router.push('/payment');
         }, 1500)
