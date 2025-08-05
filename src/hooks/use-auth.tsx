@@ -24,7 +24,6 @@ interface AuthContextType {
     login: (email:string, password:string, isAdminLogin?: boolean) => Promise<{ user: User, isAdmin: boolean} | null>;
     signup: (email:string, password:string, fullName: string) => Promise<void>;
     logout: () => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -126,40 +125,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const loginWithGoogle = async () => {
-        const provider = new GoogleAuthProvider();
-        try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            const userDocRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-
-            if (!userDoc.exists()) {
-                 await setDoc(userDocRef, {
-                    uid: user.uid,
-                    email: user.email,
-                    fullName: user.displayName,
-                    createdAt: new Date(),
-                    role: 'user', // Default role
-                });
-            }
-
-             toast({
-                title: "Google Login Successful!",
-                description: "Welcome!",
-            });
-            router.push('/profile');
-        } catch (error: any) {
-            console.error("Google login error:", error);
-            toast({
-                title: "Google Login Failed",
-                description: error.message,
-                variant: "destructive",
-            });
-        }
-    }
-
     const logout = async () => {
         try {
             await signOut(auth);
@@ -179,7 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoggedIn: !!user, isAdmin, login, signup, logout, loginWithGoogle }}>
+        <AuthContext.Provider value={{ user, isLoggedIn: !!user, isAdmin, login, signup, logout }}>
             {children}
         </AuthContext.Provider>
     );

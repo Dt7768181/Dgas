@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth.tsx";
 import { useState } from "react";
 
 export default function LoginPage() {
-  const { login, loginWithGoogle } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -58,9 +58,6 @@ export default function LoginPage() {
             </div>
             <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
               Login
-            </Button>
-            <Button variant="outline" className="w-full" onClick={(e) => {e.preventDefault(); loginWithGoogle()}}>
-              Login with Google
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
