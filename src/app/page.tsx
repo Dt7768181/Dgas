@@ -14,7 +14,7 @@ export default function Home() {
           </p>
           <div className="hidden lg:block">
             <Image
-              src="/8759722.jpg"
+              src="https://placehold.co/600x400.png"
               alt="Gas Delivery"
               width={600}
               height={400}
