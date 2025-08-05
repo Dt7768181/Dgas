@@ -70,11 +70,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (isAdminLogin) {
                  if (userIsAdmin) {
-                    // Redirect to external admin dashboard
-                    window.location.href = 'https://admin.example.com'; // IMPORTANT: Replace with your actual admin URL
+                    router.push('/admin/dashboard');
                     return { user: loggedInUser, isAdmin: userIsAdmin };
                  } else {
-                    // Not an admin, but tried admin login. Log them out.
                     await signOut(auth);
                     toast({
                         title: "Access Denied",

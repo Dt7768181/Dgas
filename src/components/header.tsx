@@ -73,7 +73,14 @@ export function Header() {
 
         if (isLoggedIn) {
             if (isAdmin) {
-                 return null; // No links for admin in the main app
+                 return (
+                    <Button variant="ghost" asChild>
+                        <Link href="/admin/dashboard">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            Dashboard
+                        </Link>
+                    </Button>
+                 );
             }
             return (
                 <>
