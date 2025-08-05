@@ -46,7 +46,7 @@ export default function ProfilePage() {
                     const userData = userDoc.data();
                     setFullName(userData.fullName || '');
                     setEmail(userData.email || '');
-                    setAddress(userData.address || "123 Main St, Anytown");
+                    setAddress(userData.address || '');
                 }
 
                 const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
@@ -126,7 +126,7 @@ export default function ProfilePage() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="address">Saved Address</Label>
-                                <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+                                <Input id="address" placeholder="e.g. 123 Main St, Anytown" value={address} onChange={(e) => setAddress(e.target.value)} />
                             </div>
                             <Button onClick={handleSaveChanges} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Save Changes</Button>
                         </CardContent>
