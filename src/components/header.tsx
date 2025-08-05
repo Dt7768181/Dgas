@@ -5,7 +5,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
-import { Bell, Home, LogOut, User, X } from "lucide-react";
+import { Bell, Home, LogOut, User, X, LayoutDashboard } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +23,7 @@ const initialPromotions = [
 export function Header() {
     const [notifications, setNotifications] = useState(initialNotifications);
     const [promotions, setPromotions] = useState(initialPromotions);
-    const { isLoggedIn, logout } = useAuth();
+    const { isLoggedIn, logout, isAdmin } = useAuth();
     
     const allItems = [...notifications, ...promotions];
 
@@ -44,6 +44,14 @@ export function Header() {
                     <span className="font-headline text-2xl font-bold text-foreground">Dgas</span>
                 </Link>
                 <nav className="hidden items-center gap-4 md:flex">
+                    {isAdmin && (
+                         <Button variant="ghost" asChild>
+                            <Link href="/admin/dashboard">
+                                <LayoutDashboard className="mr-2 h-4 w-4" />
+                                Dashboard
+                            </Link>
+                        </Button>
+                    )}
                     <Button variant="ghost" asChild>
                         <Link href="/booking">
                             <Home className="mr-2 h-4 w-4" />
