@@ -31,7 +31,7 @@ interface Subscription {
 }
 
 export default function ProfilePage() {
-    const { user, isLoggedIn, isDeliveryPartner } = useAuth();
+    const { user, isLoggedIn } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [fullName, setFullName] = useState('');
@@ -48,12 +48,7 @@ export default function ProfilePage() {
 
         const fetchUserData = async () => {
             if (user) {
-                let collectionName = "users";
-                if (isDeliveryPartner) {
-                    collectionName = "deliveryPartners";
-                }
-
-                const userDocRef = doc(db, collectionName, user.uid);
+                const userDocRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userDocRef);
                 
                 if (userDoc.exists()) {
@@ -66,28 +61,20 @@ export default function ProfilePage() {
                     }
                 }
 
-                // Only fetch orders for regular users, not delivery partners
-                if (!isDeliveryPartner) {
-                    const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
-                    const querySnapshot = await getDocs(ordersQuery);
-                    const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
-                    setOrderHistory(orders);
-                }
+                const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(ordersQuery);
+                const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+                setOrderHistory(orders);
             }
         };
 
         fetchUserData();
 
-    }, [isLoggedIn, router, user, isDeliveryPartner]);
+    }, [isLoggedIn, router, user]);
 
     const handleSaveChanges = async () => {
         if (user) {
-            let collectionName = "users";
-            if (isDeliveryPartner) {
-                collectionName = "deliveryPartners";
-            }
-            
-            const userDocRef = doc(db, collectionName, user.uid);
+            const userDocRef = doc(db, "users", user.uid);
             try {
                 await setDoc(userDocRef, {
                     fullName,
@@ -156,7 +143,7 @@ export default function ProfilePage() {
                             <Button onClick={handleSaveChanges} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Save Changes</Button>
                         </CardContent>
                     </Card>
-                     {!isDeliveryPartner && subscription && (
+                     {subscription && (
                         <Card className="shadow-lg">
                             <CardHeader>
                                 <CardTitle>Subscription Status</CardTitle>
@@ -185,50 +172,48 @@ export default function ProfilePage() {
                     )}
                 </div>
 
-                {!isDeliveryPartner && (
-                    <div className="md:col-span-2">
-                        <Card className="shadow-lg">
-                            <CardHeader>
-                                <CardTitle>Order History</CardTitle>
-                                <CardDescription>A list of your past bookings.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Order ID</TableHead>
-                                            <TableHead>Date</TableHead>
-                                            <TableHead>Item</TableHead>
-                                            <TableHead>Payment</TableHead>
-                                            <TableHead>Status</TableHead>
+                <div className="md:col-span-2">
+                    <Card className="shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Order History</CardTitle>
+                            <CardDescription>A list of your past bookings.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Order ID</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Item</TableHead>
+                                        <TableHead>Payment</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {orderHistory.length > 0 ? orderHistory.map((order) => (
+                                        <TableRow key={order.id}>
+                                            <TableCell className="font-medium">{order.orderId}</TableCell>
+                                            <TableCell>{order.createdAt.toDate().toLocaleDateString()}</TableCell>
+                                            <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={order.total > 0 ? "secondary" : "default"}>
+                                                    {order.total > 0 ? `₹${order.total.toFixed(2)}` : 'Subscription'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary">{order.status}</Badge>
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {orderHistory.length > 0 ? orderHistory.map((order) => (
-                                            <TableRow key={order.id}>
-                                                <TableCell className="font-medium">{order.orderId}</TableCell>
-                                                <TableCell>{order.createdAt.toDate().toLocaleDateString()}</TableCell>
-                                                <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={order.total > 0 ? "secondary" : "default"}>
-                                                        {order.total > 0 ? `₹${order.total.toFixed(2)}` : 'Subscription'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary">{order.status}</Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center">You have no past orders.</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center">You have no past orders.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

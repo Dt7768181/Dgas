@@ -9,8 +9,6 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
-    GoogleAuthProvider,
-    signInWithPopup
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "./use-toast";
@@ -21,9 +19,8 @@ interface AuthContextType {
     user: User | null;
     isLoggedIn: boolean;
     isAdmin: boolean;
-    isDeliveryPartner: boolean;
-    login: (email:string, password:string, isAdminLogin?: boolean, isDeliveryPartnerLogin?: boolean) => Promise<any | null>;
-    signup: (email:string, password:string, fullName: string, isDeliveryPartner?: boolean) => Promise<void>;
+    login: (email:string, password:string, isAdminLogin?: boolean) => Promise<any | null>;
+    signup: (email:string, password:string, fullName: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -32,7 +29,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
-    const [isDeliveryPartner, setIsDeliveryPartner] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -42,7 +38,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const adminUser = JSON.parse(adminSession);
             setUser(adminUser as User); 
             setIsAdmin(true);
-            setIsDeliveryPartner(false);
         }
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -53,23 +48,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     const adminUser = JSON.parse(adminSession);
                     setUser(adminUser as User);
                     setIsAdmin(true);
-                    setIsDeliveryPartner(false);
                 } else {
                     setUser(user);
                     const adminDocRef = doc(db, "admin", user.uid);
                     const adminDoc = await getDoc(adminDocRef);
                     setIsAdmin(adminDoc.exists());
-
-                    const partnerDocRef = doc(db, "deliveryPartners", user.uid);
-                    const partnerDoc = await getDoc(partnerDocRef);
-                    setIsDeliveryPartner(partnerDoc.exists());
                 }
             } else {
                 const adminSession = sessionStorage.getItem('adminUser');
                 if (!adminSession) {
                     setUser(null);
                     setIsAdmin(false);
-                    setIsDeliveryPartner(false);
                 }
             }
         });
@@ -77,7 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => unsubscribe();
     }, []);
 
-    const login = async (email:string, password:string, isAdminLogin = false, isDeliveryPartnerLogin = false) => {
+    const login = async (email:string, password:string, isAdminLogin = false) => {
         try {
              if (isAdminLogin) {
                 const adminQuery = query(collection(db, "admin"), where("email", "==", email));
@@ -99,10 +88,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     sessionStorage.setItem('adminUser', JSON.stringify(adminUser));
                     setUser(adminUser as User);
                     setIsAdmin(true);
-                    setIsDeliveryPartner(false);
                     toast({ title: "Login Successful!", description: "Welcome back, Admin." });
                     router.push('/admin/dashboard');
-                    return { user: adminUser, isAdmin: true, isDeliveryPartner: false };
+                    return { user: adminUser, isAdmin: true };
                 } else {
                     toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
                     return null;
@@ -113,7 +101,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const loggedInUser = userCredential.user;
             
             let userIsAdmin = false;
-            let userIsDeliveryPartner = false;
             
             const adminDocRef = doc(db, "admin", loggedInUser.uid);
             const adminDoc = await getDoc(adminDocRef);
@@ -121,32 +108,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 userIsAdmin = true;
             }
 
-            const partnerDocRef = doc(db, "deliveryPartners", loggedInUser.uid);
-            const partnerDoc = await getDoc(partnerDocRef);
-            if (partnerDoc.exists()) {
-                userIsDeliveryPartner = true;
+            if (!userIsAdmin) {
+                toast({ title: "Login Successful!", description: "Welcome back." });
+                router.push('/booking');
+            } else {
+                await signOut(auth);
+                toast({ title: "Access Denied", description: "Please use the appropriate portal to log in.", variant: "destructive" });
+                return null;
             }
-
-            if (isDeliveryPartnerLogin) {
-                if (userIsDeliveryPartner) {
-                    toast({ title: "Login Successful!", description: "Welcome back, Partner." });
-                    router.push('/delivery');
-                } else {
-                     await signOut(auth);
-                    toast({ title: "Access Denied", description: "You are not a registered delivery partner.", variant: "destructive" });
-                    return null;
-                }
-            } else { // Regular user login
-                if (!userIsAdmin && !userIsDeliveryPartner) {
-                    toast({ title: "Login Successful!", description: "Welcome back." });
-                    router.push('/booking');
-                } else {
-                    await signOut(auth);
-                    toast({ title: "Access Denied", description: "Please use the appropriate portal to log in.", variant: "destructive" });
-                    return null;
-                }
-            }
-            return { user: loggedInUser, isDeliveryPartner: userIsDeliveryPartner, isAdmin: userIsAdmin };
+            
+            return { user: loggedInUser, isAdmin: userIsAdmin };
 
         } catch (error: any) {
             console.error("Login error:", error);
@@ -165,45 +136,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const signup = async (email:string, password:string, fullName: string, isDeliveryPartnerSignup = false) => {
+    const signup = async (email:string, password:string, fullName: string) => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            if (isDeliveryPartnerSignup) {
-                    await setDoc(doc(db, "deliveryPartners", user.uid), {
-                    uid: user.uid,
-                    email: user.email,
-                    fullName: fullName,
-                    createdAt: new Date(),
-                });
-                toast({
-                    title: "Partner Signup Successful!",
-                    description: "Your delivery partner account has been created.",
-                });
-                router.push('/delivery');
+            
+            // Initialize subscription for regular users
+            const expiryDate = new Date();
+            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-            } else {
-                // Initialize subscription for regular users
-                const expiryDate = new Date();
-                expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-
-                await setDoc(doc(db, "users", user.uid), {
-                    uid: user.uid,
-                    email: user.email,
-                    fullName: fullName,
-                    createdAt: new Date(),
-                    subscription: {
-                        barrelsRemaining: 12,
-                        expiryDate: Timestamp.fromDate(expiryDate),
-                        status: "active",
-                    }
-                });
-                toast({
-                    title: "Signup Successful!",
-                    description: "Your account and annual subscription have been created.",
-                });
-                router.push('/profile');
-            }
+            await setDoc(doc(db, "users", user.uid), {
+                uid: user.uid,
+                email: user.email,
+                fullName: fullName,
+                createdAt: new Date(),
+                subscription: {
+                    barrelsRemaining: 12,
+                    expiryDate: Timestamp.fromDate(expiryDate),
+                    status: "active",
+                }
+            });
+            toast({
+                title: "Signup Successful!",
+                description: "Your account and annual subscription have been created.",
+            });
+            router.push('/profile');
 
         } catch (error: any) {
              console.error("Signup error:", error);
@@ -250,7 +207,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoggedIn: !!user || isAdmin, isAdmin, isDeliveryPartner, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, isLoggedIn: !!user || isAdmin, isAdmin, login, signup, logout }}>
             {children}
         </AuthContext.Provider>
     );

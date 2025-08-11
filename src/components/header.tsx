@@ -5,7 +5,7 @@ import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
-import { Bell, Home, LogOut, User, X, LayoutDashboard, Truck } from "lucide-react";
+import { Bell, Home, LogOut, User, X, LayoutDashboard } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Separator } from "./ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,7 +31,7 @@ interface Promotion {
 export function Header() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [promotions, setPromotions] = useState<Promotion[]>([]);
-    const { user, isLoggedIn, logout, isDeliveryPartner, isAdmin } = useAuth();
+    const { isLoggedIn, logout, isAdmin } = useAuth();
     const [mounted, setMounted] = useState(false);
     
     useEffect(() => {
@@ -82,16 +82,6 @@ export function Header() {
                     </Button>
                 )
             }
-            if (isDeliveryPartner) {
-                return (
-                    <Button variant="ghost" asChild>
-                        <Link href="/delivery">
-                            <Truck className="mr-2 h-4 w-4" />
-                            Delivery Portal
-                        </Link>
-                    </Button>
-                )
-            }
             return (
                 <>
                     <Button variant="ghost" asChild>
@@ -116,12 +106,6 @@ export function Header() {
                     <Link href="/booking">
                         <Home className="mr-2 h-4 w-4" />
                         Home
-                    </Link>
-                </Button>
-                <Button variant="ghost" asChild>
-                    <Link href="/delivery/login">
-                        <Truck className="mr-2 h-4 w-4" />
-                        Delivery
                     </Link>
                 </Button>
             </>
