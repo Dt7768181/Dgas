@@ -15,7 +15,7 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "./use-toast";
 import { useRouter } from "next/navigation";
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
 
 interface AuthContextType {
     user: User | null;
@@ -37,6 +37,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const router = useRouter();
 
     useEffect(() => {
+        const adminSession = sessionStorage.getItem('adminUser');
+        if (adminSession) {
+            const adminUser = JSON.parse(adminSession);
+            setUser(adminUser as User); 
+            setIsAdmin(true);
+            setIsDeliveryPartner(false);
+        }
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 setUser(user);
@@ -48,17 +56,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const partnerDoc = await getDoc(partnerDocRef);
                 setIsDeliveryPartner(partnerDoc.exists());
             } else {
-                 const adminSession = sessionStorage.getItem('adminUser');
-                 if (adminSession) {
-                     const adminUser = JSON.parse(adminSession);
-                     setUser(adminUser as User); // This is not a real Firebase User object
-                     setIsAdmin(true);
-                     setIsDeliveryPartner(false);
-                 } else {
+                const adminSession = sessionStorage.getItem('adminUser');
+                if (!adminSession) {
                     setUser(null);
                     setIsAdmin(false);
                     setIsDeliveryPartner(false);
-                 }
+                }
             }
         });
 
@@ -273,7 +276,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoggedIn: !!user, isAdmin, isDeliveryPartner, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, isLoggedIn: !!user || isAdmin, isAdmin, isDeliveryPartner, login, signup, logout }}>
             {children}
         </AuthContext.Provider>
     );
