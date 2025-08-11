@@ -137,11 +137,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     const signup = async (email:string, password:string, fullName: string, isDeliveryPartnerSignup = false, isAdminSignup = false, employeeId = '') => {
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-            
             if (isAdminSignup) {
-                 await setDoc(doc(db, "admin", user.uid), {
+                 if (!employeeId) {
+                    toast({ title: "Signup Failed", description: "Employee ID is required for admin registration.", variant: "destructive" });
+                    return;
+                }
+
+                // Check if employee ID exists in the 'employees' collection
+                const employeeDocRef = doc(db, "employees", employeeId);
+                const employeeDoc = await getDoc(employeeDocRef);
+                if (!employeeDoc.exists()) {
+                    toast({ title: "Signup Failed", description: "Invalid Employee ID.", variant: "destructive" });
+                    return;
+                }
+
+                // Check if the employee ID is already used by another admin
+                const q = query(collection(db, "admin"), where("employeeId", "==", employeeId));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    toast({ title: "Signup Failed", description: "This Employee ID is already registered.", variant: "destructive" });
+                    return;
+                }
+
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                await setDoc(doc(db, "admin", user.uid), {
                     uid: user.uid,
                     email: user.email,
                     employeeId: employeeId,
@@ -152,31 +173,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     description: "Your administrator account has been created.",
                 });
                 router.push('/admin/dashboard');
-            } else if (isDeliveryPartnerSignup) {
-                 await setDoc(doc(db, "deliveryPartners", user.uid), {
-                    uid: user.uid,
-                    email: user.email,
-                    fullName: fullName,
-                    createdAt: new Date(),
-                });
-                toast({
-                    title: "Partner Signup Successful!",
-                    description: "Your delivery partner account has been created.",
-                });
-                router.push('/delivery');
-
             } else {
-                await setDoc(doc(db, "users", user.uid), {
-                    uid: user.uid,
-                    email: user.email,
-                    fullName: fullName,
-                    createdAt: new Date(),
-                });
-                toast({
-                    title: "Signup Successful!",
-                    description: "Your account has been created.",
-                });
-                router.push('/profile');
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                if (isDeliveryPartnerSignup) {
+                     await setDoc(doc(db, "deliveryPartners", user.uid), {
+                        uid: user.uid,
+                        email: user.email,
+                        fullName: fullName,
+                        createdAt: new Date(),
+                    });
+                    toast({
+                        title: "Partner Signup Successful!",
+                        description: "Your delivery partner account has been created.",
+                    });
+                    router.push('/delivery');
+
+                } else {
+                    await setDoc(doc(db, "users", user.uid), {
+                        uid: user.uid,
+                        email: user.email,
+                        fullName: fullName,
+                        createdAt: new Date(),
+                    });
+                    toast({
+                        title: "Signup Successful!",
+                        description: "Your account has been created.",
+                    });
+                    router.push('/profile');
+                }
             }
 
         } catch (error: any) {
@@ -225,3 +250,5 @@ export const useAuth = () => {
     }
     return context;
 };
+
+    
