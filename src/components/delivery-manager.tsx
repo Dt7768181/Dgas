@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "./ui/badge";
 
 interface Order {
     id: string; // This will be the path to the document
@@ -81,6 +82,7 @@ export function DeliveryManager() {
                             <TableHead>Order ID</TableHead>
                             <TableHead>Item</TableHead>
                             <TableHead>Delivery Date</TableHead>
+                            <TableHead>Payment Status</TableHead>
                             <TableHead>Status</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -90,6 +92,9 @@ export function DeliveryManager() {
                                 <TableCell className="font-medium">{order.orderId}</TableCell>
                                 <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
                                 <TableCell>{order.deliveryDate.toDate().toLocaleDateString()}</TableCell>
+                                <TableCell>
+                                    <Badge variant="secondary">Paid</Badge>
+                                </TableCell>
                                 <TableCell>
                                     <Select 
                                         defaultValue={order.status} 
@@ -108,7 +113,7 @@ export function DeliveryManager() {
                             </TableRow>
                         )) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center">No orders found.</TableCell>
+                                <TableCell colSpan={5} className="text-center">No orders found.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
