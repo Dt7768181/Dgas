@@ -72,6 +72,12 @@ export default function LoginPage() {
               Delivery Partner Login
             </Link>
           </div>
+           <div className="mt-4 text-center text-sm">
+            Are you an admin?{" "}
+            <Link href="/admin/login" className="underline">
+              Admin Login
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
