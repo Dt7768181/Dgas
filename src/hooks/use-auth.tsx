@@ -23,7 +23,7 @@ interface AuthContextType {
     isAdmin: boolean;
     isDeliveryPartner: boolean;
     login: (email:string, password:string, isAdminLogin?: boolean, isDeliveryPartnerLogin?: boolean) => Promise<any | null>;
-    signup: (email:string, password:string, fullName: string, isDeliveryPartner?: boolean, isAdmin?: boolean, employeeId?: string) => Promise<void>;
+    signup: (email:string, password:string, fullName: string, isDeliveryPartner?: boolean) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -47,14 +47,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                setUser(user);
-                const adminDocRef = doc(db, "admin", user.uid);
-                const adminDoc = await getDoc(adminDocRef);
-                setIsAdmin(adminDoc.exists());
+                const adminSession = sessionStorage.getItem('adminUser');
+                if (adminSession) {
+                    // If there's an admin session, prioritize it.
+                    const adminUser = JSON.parse(adminSession);
+                    setUser(adminUser as User);
+                    setIsAdmin(true);
+                    setIsDeliveryPartner(false);
+                } else {
+                    setUser(user);
+                    const adminDocRef = doc(db, "admin", user.uid);
+                    const adminDoc = await getDoc(adminDocRef);
+                    setIsAdmin(adminDoc.exists());
 
-                const partnerDocRef = doc(db, "deliveryPartners", user.uid);
-                const partnerDoc = await getDoc(partnerDocRef);
-                setIsDeliveryPartner(partnerDoc.exists());
+                    const partnerDocRef = doc(db, "deliveryPartners", user.uid);
+                    const partnerDoc = await getDoc(partnerDocRef);
+                    setIsDeliveryPartner(partnerDoc.exists());
+                }
             } else {
                 const adminSession = sessionStorage.getItem('adminUser');
                 if (!adminSession) {
@@ -83,8 +92,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 const adminData = adminDoc.data();
 
                 if (adminData.password === password) {
-                     // IMPORTANT: This is a mock user object and not a real Firebase User.
-                    // Session will only persist in sessionStorage.
                     const adminUser = {
                         uid: adminDoc.id,
                         email: adminData.email,
@@ -158,77 +165,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const signup = async (email:string, password:string, fullName: string, isDeliveryPartnerSignup = false, isAdminSignup = false, employeeId = '') => {
+    const signup = async (email:string, password:string, fullName: string, isDeliveryPartnerSignup = false) => {
         try {
-            if (isAdminSignup) {
-                 if (!employeeId) {
-                    toast({ title: "Signup Failed", description: "Employee ID is required for admin registration.", variant: "destructive" });
-                    return;
-                }
-
-                const employeeDocRef = doc(db, "employees", employeeId);
-                const employeeDoc = await getDoc(employeeDocRef);
-                if (!employeeDoc.exists()) {
-                    toast({ title: "Signup Failed", description: "Invalid Employee ID.", variant: "destructive" });
-                    return;
-                }
-
-                const q = query(collection(db, "admin"), where("employeeId", "==", employeeId));
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    toast({ title: "Signup Failed", description: "This Employee ID is already registered.", variant: "destructive" });
-                    return;
-                }
-
-                 const adminEmailQuery = query(collection(db, "admin"), where("email", "==", email));
-                const adminEmailSnapshot = await getDocs(adminEmailQuery);
-                if (!adminEmailSnapshot.empty) {
-                    toast({ title: "Signup Failed", description: "This email is already registered for an admin account.", variant: "destructive" });
-                    return;
-                }
-
-
-                await addDoc(collection(db, "admin"), {
-                    email: email,
-                    password: password, // Storing password in plaintext - NOT RECOMMENDED
-                    employeeId: employeeId,
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            if (isDeliveryPartnerSignup) {
+                    await setDoc(doc(db, "deliveryPartners", user.uid), {
+                    uid: user.uid,
+                    email: user.email,
+                    fullName: fullName,
                     createdAt: new Date(),
                 });
                 toast({
-                    title: "Admin Signup Successful!",
-                    description: "Your administrator account has been created. Please log in.",
+                    title: "Partner Signup Successful!",
+                    description: "Your delivery partner account has been created.",
                 });
-                router.push('/admin/login');
+                router.push('/delivery');
 
             } else {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-                if (isDeliveryPartnerSignup) {
-                     await setDoc(doc(db, "deliveryPartners", user.uid), {
-                        uid: user.uid,
-                        email: user.email,
-                        fullName: fullName,
-                        createdAt: new Date(),
-                    });
-                    toast({
-                        title: "Partner Signup Successful!",
-                        description: "Your delivery partner account has been created.",
-                    });
-                    router.push('/delivery');
-
-                } else {
-                    await setDoc(doc(db, "users", user.uid), {
-                        uid: user.uid,
-                        email: user.email,
-                        fullName: fullName,
-                        createdAt: new Date(),
-                    });
-                    toast({
-                        title: "Signup Successful!",
-                        description: "Your account has been created.",
-                    });
-                    router.push('/profile');
-                }
+                await setDoc(doc(db, "users", user.uid), {
+                    uid: user.uid,
+                    email: user.email,
+                    fullName: fullName,
+                    createdAt: new Date(),
+                });
+                toast({
+                    title: "Signup Successful!",
+                    description: "Your account has been created.",
+                });
+                router.push('/profile');
             }
 
         } catch (error: any) {
