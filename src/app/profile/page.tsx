@@ -13,6 +13,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc, collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { Package, Calendar } from "lucide-react";
 
 interface Order {
     id: string;
@@ -23,6 +24,12 @@ interface Order {
     createdAt: Timestamp;
 }
 
+interface Subscription {
+    barrelsRemaining: number;
+    expiryDate: Timestamp;
+    status: string;
+}
+
 export default function ProfilePage() {
     const { user, isLoggedIn, isDeliveryPartner } = useAuth();
     const router = useRouter();
@@ -31,6 +38,7 @@ export default function ProfilePage() {
     const [email, setEmail] = useState('');
     const [address, setAddress] = useState('');
     const [orderHistory, setOrderHistory] = useState<Order[]>([]);
+    const [subscription, setSubscription] = useState<Subscription | null>(null);
     
     useEffect(() => {
         if (!isLoggedIn) {
@@ -53,6 +61,9 @@ export default function ProfilePage() {
                     setFullName(userData.fullName || '');
                     setEmail(userData.email || '');
                     setAddress(userData.address || '');
+                    if (userData.subscription) {
+                        setSubscription(userData.subscription);
+                    }
                 }
 
                 // Only fetch orders for regular users, not delivery partners
@@ -114,16 +125,16 @@ export default function ProfilePage() {
 
 
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-12">
+        <div className="container mx-auto max-w-6xl px-4 py-12">
             <div className="space-y-4 mb-8">
                 <h1 className="font-headline text-4xl font-bold tracking-tighter sm:text-5xl">Your Profile</h1>
                 <p className="text-lg text-muted-foreground">
-                    Manage your account settings and view your order history.
+                    Manage your account settings, subscription, and view your order history.
                 </p>
             </div>
 
             <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-                <div className="md:col-span-1">
+                <div className="md:col-span-1 space-y-8">
                     <Card className="shadow-lg">
                         <CardHeader>
                             <CardTitle>Account Details</CardTitle>
@@ -145,6 +156,33 @@ export default function ProfilePage() {
                             <Button onClick={handleSaveChanges} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">Save Changes</Button>
                         </CardContent>
                     </Card>
+                     {!isDeliveryPartner && subscription && (
+                        <Card className="shadow-lg">
+                            <CardHeader>
+                                <CardTitle>Subscription Status</CardTitle>
+                                <CardDescription>Your annual barrel plan.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Package className="h-6 w-6 text-primary" />
+                                        <span className="font-medium">Barrels Remaining</span>
+                                    </div>
+                                    <span className="font-bold text-2xl text-primary">{subscription.barrelsRemaining}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Calendar className="h-6 w-6 text-muted-foreground" />
+                                        <span className="font-medium">Expires On</span>
+                                    </div>
+                                    <span className="text-muted-foreground">{subscription.expiryDate.toDate().toLocaleDateString()}</span>
+                                </div>
+                                <Badge className={subscription.status === 'active' ? 'bg-green-500' : 'bg-destructive'}>
+                                    {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                                </Badge>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {!isDeliveryPartner && (
@@ -161,7 +199,7 @@ export default function ProfilePage() {
                                             <TableHead>Order ID</TableHead>
                                             <TableHead>Date</TableHead>
                                             <TableHead>Item</TableHead>
-                                            <TableHead>Total</TableHead>
+                                            <TableHead>Payment</TableHead>
                                             <TableHead>Status</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -171,7 +209,11 @@ export default function ProfilePage() {
                                                 <TableCell className="font-medium">{order.orderId}</TableCell>
                                                 <TableCell>{order.createdAt.toDate().toLocaleDateString()}</TableCell>
                                                 <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
-                                                <TableCell>₹{order.total.toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={order.total > 0 ? "secondary" : "default"}>
+                                                        {order.total > 0 ? `₹${order.total.toFixed(2)}` : 'Subscription'}
+                                                    </Badge>
+                                                </TableCell>
                                                 <TableCell>
                                                     <Badge variant="secondary">{order.status}</Badge>
                                                 </TableCell>

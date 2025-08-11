@@ -82,7 +82,7 @@ export function DeliveryManager() {
                             <TableHead>Order ID</TableHead>
                             <TableHead>Item</TableHead>
                             <TableHead>Delivery Date</TableHead>
-                            <TableHead>Payment Status</TableHead>
+                            <TableHead>Payment</TableHead>
                             <TableHead>Status</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -93,7 +93,9 @@ export function DeliveryManager() {
                                 <TableCell>{formatCylinderType(order.cylinderType)}</TableCell>
                                 <TableCell>{order.deliveryDate.toDate().toLocaleDateString()}</TableCell>
                                 <TableCell>
-                                    <Badge variant="secondary">Paid</Badge>
+                                    <Badge variant={order.total > 0 ? "secondary" : "default"}>
+                                        {order.total > 0 ? `Paid (₹${order.total})` : 'Subscription'}
+                                    </Badge>
                                 </TableCell>
                                 <TableCell>
                                     <Select 
@@ -107,6 +109,7 @@ export function DeliveryManager() {
                                             <SelectItem value="Confirmed">Confirmed</SelectItem>
                                             <SelectItem value="Processing">Processing</SelectItem>
                                             <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
+                                            <SelectItem value="Delivered">Delivered</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </TableCell>

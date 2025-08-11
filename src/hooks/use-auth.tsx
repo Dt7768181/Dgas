@@ -15,7 +15,7 @@ import {
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "./use-toast";
 import { useRouter } from "next/navigation";
-import { doc, setDoc, getDoc, collection, query, where, getDocs, addDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, query, where, getDocs, addDoc, Timestamp } from "firebase/firestore";
 
 interface AuthContextType {
     user: User | null;
@@ -183,15 +183,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 router.push('/delivery');
 
             } else {
+                // Initialize subscription for regular users
+                const expiryDate = new Date();
+                expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
                 await setDoc(doc(db, "users", user.uid), {
                     uid: user.uid,
                     email: user.email,
                     fullName: fullName,
                     createdAt: new Date(),
+                    subscription: {
+                        barrelsRemaining: 12,
+                        expiryDate: Timestamp.fromDate(expiryDate),
+                        status: "active",
+                    }
                 });
                 toast({
                     title: "Signup Successful!",
-                    description: "Your account has been created.",
+                    description: "Your account and annual subscription have been created.",
                 });
                 router.push('/profile');
             }

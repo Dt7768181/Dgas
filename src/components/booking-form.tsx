@@ -22,10 +22,10 @@ import { useState, useEffect } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Package } from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { useAuth } from "@/hooks/use-auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, runTransaction, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 const formSchema = z.object({
@@ -40,39 +40,58 @@ const formSchema = z.object({
     }),
 });
 
+interface Subscription {
+    barrelsRemaining: number;
+    expiryDate: Timestamp;
+    status: string;
+}
+
+const deliverySlotTimes: { [key: string]: { hours: number, minutes: number} } = {
+    morning: { hours: 10, minutes: 0},
+    afternoon: { hours: 14, minutes: 0 },
+    evening: { hours: 18, minutes: 0 },
+}
+
 export function BookingForm() {
     const { toast } = useToast();
     const router = useRouter();
     const { isLoggedIn, user } = useAuth();
     const [address, setAddress] = useState("");
+    const [subscription, setSubscription] = useState<Subscription | null>(null);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
     });
 
     useEffect(() => {
-        const fetchUserAddress = async () => {
+        const fetchUserData = async () => {
              if (isLoggedIn && user) {
                 const userDocRef = doc(db, "users", user.uid);
                 const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists() && userDoc.data().address) {
-                    setAddress(userDoc.data().address);
-                } else {
-                     toast({
-                        title: "No Address Found",
-                        description: "Please add a delivery address to your profile.",
-                        variant: "destructive",
-                    });
-                     router.push('/profile');
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    if (userData.address) {
+                        setAddress(userData.address);
+                    } else {
+                         toast({
+                            title: "No Address Found",
+                            description: "Please add a delivery address to your profile.",
+                            variant: "destructive",
+                        });
+                         router.push('/profile');
+                    }
+                    if (userData.subscription) {
+                        setSubscription(userData.subscription);
+                    }
                 }
             }
         }
-        fetchUserAddress();
+        fetchUserData();
     }, [isLoggedIn, user, toast, router]);
 
 
-    function onSubmit(values: z.infer<typeof formSchema>) {
-        if (!isLoggedIn) {
+    async function onSubmit(values: z.infer<typeof formSchema>) {
+        if (!isLoggedIn || !user) {
             toast({
                 title: "Login Required",
                 description: "Please log in to book a cylinder.",
@@ -92,22 +111,75 @@ export function BookingForm() {
             return;
         }
 
+        if (!subscription || subscription.barrelsRemaining <= 0 || subscription.status !== 'active') {
+            toast({
+                title: "Subscription Issue",
+                description: "You have no barrels left or your subscription is inactive. Please contact support.",
+                variant: "destructive",
+            });
+            return;
+        }
+        
         const bookingDetails = {
             ...values,
-            address: address, // Add the fetched address to the booking details
+            address: address,
         };
-
-        // Store booking details in session storage to pass to payment page
-        sessionStorage.setItem("bookingDetails", JSON.stringify(bookingDetails));
-
-        toast({
-            title: "Booking Initiated",
-            description: "Proceeding to payment...",
-        });
         
-        setTimeout(() => {
-            router.push('/payment');
-        }, 1500)
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+
+            // Use a transaction to safely decrement the barrel count
+            await runTransaction(db, async (transaction) => {
+                const userDoc = await transaction.get(userDocRef);
+                if (!userDoc.exists()) {
+                    throw "User document does not exist!";
+                }
+
+                const currentSubscription = userDoc.data().subscription;
+                if (!currentSubscription || currentSubscription.barrelsRemaining <= 0) {
+                    throw "No barrels remaining!";
+                }
+
+                // Decrement barrels
+                transaction.update(userDocRef, {
+                    "subscription.barrelsRemaining": currentSubscription.barrelsRemaining - 1
+                });
+                
+                // Add the new order
+                const deliveryDate = new Date(bookingDetails.deliveryDate);
+                const slotTime = deliverySlotTimes[bookingDetails.deliverySlot];
+                if (slotTime) {
+                    deliveryDate.setHours(slotTime.hours, slotTime.minutes, 0, 0);
+                }
+
+                const newOrderRef = doc(collection(db, "users", user.uid, "orders"));
+                transaction.set(newOrderRef, {
+                    orderId: `DGAS${Math.floor(10000 + Math.random() * 90000)}`,
+                    ...bookingDetails,
+                    deliveryDate: deliveryDate,
+                    total: 0, // No cost as it's from subscription
+                    status: "Confirmed",
+                    createdAt: serverTimestamp(),
+                });
+            });
+
+            toast({
+                title: "Booking Successful!",
+                description: "Your order has been confirmed using one barrel from your subscription.",
+            });
+
+            setTimeout(() => {
+                router.push('/track');
+            }, 1500);
+
+        } catch (error) {
+            console.error("Error creating order:", error);
+            toast({
+                title: "Booking Failed",
+                description: typeof error === 'string' ? error : "There was an error placing your order.",
+                variant: "destructive",
+            });
+        }
     }
 
     return (
@@ -117,6 +189,15 @@ export function BookingForm() {
                 <CardDescription>Fill in the details below to schedule your delivery.</CardDescription>
             </CardHeader>
             <CardContent>
+                {subscription && (
+                     <div className="mb-6 flex items-center justify-between rounded-lg border bg-secondary/50 p-4">
+                        <div className="flex items-center gap-3">
+                            <Package className="h-6 w-6 text-primary" />
+                            <span className="font-medium">Barrels Remaining</span>
+                        </div>
+                        <span className="text-xl font-bold text-primary">{subscription.barrelsRemaining}</span>
+                    </div>
+                )}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <FormField
@@ -138,7 +219,6 @@ export function BookingForm() {
                                                     </FormControl>
                                                     <FormLabel className="font-normal">Single (5kg)</FormLabel>
                                                 </div>
-                                                <span className="text-sm font-medium">₹450</span>
                                             </FormItem>
                                             <FormItem className="flex items-center justify-between space-x-3 space-y-0">
                                                  <div className="flex items-center space-x-3">
@@ -147,7 +227,6 @@ export function BookingForm() {
                                                     </FormControl>
                                                     <FormLabel className="font-normal">Family (14.2kg)</FormLabel>
                                                 </div>
-                                                <span className="text-sm font-medium">₹850</span>
                                             </FormItem>
                                             <FormItem className="flex items-center justify-between space-x-3 space-y-0">
                                                  <div className="flex items-center space-x-3">
@@ -156,7 +235,6 @@ export function BookingForm() {
                                                     </FormControl>
                                                     <FormLabel className="font-normal">Commercial (19kg)</FormLabel>
                                                 </div>
-                                                <span className="text-sm font-medium">₹1200</span>
                                             </FormItem>
                                         </RadioGroup>
                                     </FormControl>
@@ -219,7 +297,7 @@ export function BookingForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="morning">10 AM - 12 PM (₹50 extra)</SelectItem>
+                                            <SelectItem value="morning">10 AM - 12 PM</SelectItem>
                                             <SelectItem value="afternoon">2 PM - 4 PM</SelectItem>
                                             <SelectItem value="evening">6 PM - 8 PM</SelectItem>
                                         </SelectContent>
@@ -228,8 +306,13 @@ export function BookingForm() {
                                 </FormItem>
                             )}
                         />
-                        <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" size="lg">
-                            Book Now & Pay
+                        <Button 
+                            type="submit" 
+                            className="w-full bg-accent text-accent-foreground hover:bg-accent/90" 
+                            size="lg"
+                            disabled={!subscription || subscription.barrelsRemaining <= 0 || subscription.status !== 'active'}
+                        >
+                            Book Using 1 Barrel
                         </Button>
                     </form>
                 </Form>

@@ -11,7 +11,7 @@ export default function BookingPage() {
             Fast & Reliable Gas Delivery
           </h1>
           <p className="max-w-[600px] text-lg text-muted-foreground md:text-xl lg:mx-0">
-            Get your gas cylinders delivered to your doorstep with ease. Schedule your delivery in just a few clicks.
+            Get your gas cylinders delivered to your doorstep with ease. Use your annual subscription to book a cylinder.
           </p>
           <div className="hidden lg:block">
             <HeroPattern />

@@ -27,7 +27,7 @@ export default function SignupPage() {
         <CardHeader className="text-center">
           <GasCylinderIcon className="mx-auto h-12 w-12 text-primary" />
           <CardTitle className="mt-4 font-headline text-3xl">Create an Account</CardTitle>
-          <CardDescription>Join Dgas for hassle-free cylinder booking.</CardDescription>
+          <CardDescription>Join Dgas to get your annual subscription of 12 gas barrels.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="grid gap-4">
@@ -63,7 +63,7 @@ export default function SignupPage() {
                 />
             </div>
             <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-              Create Account
+              Create Account & Start Subscription
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
