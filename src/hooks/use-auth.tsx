@@ -23,7 +23,7 @@ interface AuthContextType {
     isAdmin: boolean;
     isDeliveryPartner: boolean;
     login: (email:string, password:string, isAdminLogin?: boolean, isDeliveryPartnerLogin?: boolean) => Promise<{ user: User, isDeliveryPartner: boolean, isAdmin: boolean } | null>;
-    signup: (email:string, password:string, fullName: string, isDeliveryPartner?: boolean) => Promise<void>;
+    signup: (email:string, password:string, fullName: string, isDeliveryPartner?: boolean, isAdmin?: boolean, employeeId?: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -135,12 +135,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const signup = async (email:string, password:string, fullName: string, isDeliveryPartnerSignup = false) => {
+    const signup = async (email:string, password:string, fullName: string, isDeliveryPartnerSignup = false, isAdminSignup = false, employeeId = '') => {
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
             
-            if (isDeliveryPartnerSignup) {
+            if (isAdminSignup) {
+                 await setDoc(doc(db, "admin", user.uid), {
+                    uid: user.uid,
+                    email: user.email,
+                    employeeId: employeeId,
+                    createdAt: new Date(),
+                });
+                toast({
+                    title: "Admin Signup Successful!",
+                    description: "Your administrator account has been created.",
+                });
+                router.push('/admin/dashboard');
+            } else if (isDeliveryPartnerSignup) {
                  await setDoc(doc(db, "deliveryPartners", user.uid), {
                     uid: user.uid,
                     email: user.email,

@@ -10,26 +10,37 @@ import { GasCylinderIcon } from "@/components/icons/gas-cylinder-icon";
 import { useAuth } from "@/hooks/use-auth.tsx";
 import { useState } from "react";
 
-export default function AdminLoginPage() {
-  const { login } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function AdminSignupPage() {
+    const { signup } = useAuth();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [employeeId, setEmployeeId] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    login(email, password, true); // Set isAdminLogin to true
-  };
+    const handleSignup = (e: React.FormEvent) => {
+        e.preventDefault();
+        signup(email, password, "", false, true, employeeId); 
+    }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="mx-auto w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">
           <GasCylinderIcon className="mx-auto h-12 w-12 text-primary" />
-          <CardTitle className="mt-4 font-headline text-3xl">Admin Portal</CardTitle>
-          <CardDescription>Enter your admin credentials to access the dashboard.</CardDescription>
+          <CardTitle className="mt-4 font-headline text-3xl">Admin Registration</CardTitle>
+          <CardDescription>Create a new administrator account.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="grid gap-4">
+          <form onSubmit={handleSignup} className="grid gap-4">
+            <div className="grid gap-2">
+                <Label htmlFor="employee-id">Employee ID</Label>
+                <Input 
+                    id="employee-id" 
+                    placeholder="EMP12345" 
+                    required 
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value)}
+                />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -42,12 +53,7 @@ export default function AdminLoginPage() {
               />
             </div>
             <div className="grid gap-2">
-                <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <Link href="#" className="ml-auto inline-block text-sm underline">
-                        Forgot your password?
-                    </Link>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input 
                     id="password" 
                     type="password" 
@@ -57,21 +63,15 @@ export default function AdminLoginPage() {
                 />
             </div>
             <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-              Login to Admin
+              Create Admin Account
             </Button>
           </form>
-            <div className="mt-4 text-center text-sm">
-                Not an admin?{" "}
-                <Link href="/login" className="underline">
-                User Login
-                </Link>
-            </div>
-            <div className="mt-4 text-center text-sm">
-              Need an admin account?{" "}
-              <Link href="/admin/signup" className="underline">
-                Register Here
-              </Link>
-            </div>
+          <div className="mt-4 text-center text-sm">
+            Already have an admin account?{" "}
+            <Link href="/admin/login" className="underline">
+              Login
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
