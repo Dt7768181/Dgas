@@ -22,7 +22,7 @@ interface AuthContextType {
     isLoggedIn: boolean;
     isAdmin: boolean;
     isDeliveryPartner: boolean;
-    login: (email:string, password:string, isAdminLogin?: boolean, isDeliveryPartnerLogin?: boolean) => Promise<{ user: User, isDeliveryPartner: boolean, isAdmin: boolean } | null>;
+    login: (email:string, password:string, isAdminLogin?: boolean, isDeliveryPartnerLogin?: boolean) => Promise<any | null>;
     signup: (email:string, password:string, fullName: string, isDeliveryPartner?: boolean, isAdmin?: boolean, employeeId?: string) => Promise<void>;
     logout: () => Promise<void>;
 }
@@ -38,30 +38,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            setUser(user);
             if (user) {
-                // Check for admin role
+                setUser(user);
                 const adminDocRef = doc(db, "admin", user.uid);
                 const adminDoc = await getDoc(adminDocRef);
-                if (adminDoc.exists()) {
-                    setIsAdmin(true);
-                    setIsDeliveryPartner(false); // An admin is not a delivery partner
-                    return;
-                }
+                setIsAdmin(adminDoc.exists());
 
-                // Check for delivery partner role
                 const partnerDocRef = doc(db, "deliveryPartners", user.uid);
                 const partnerDoc = await getDoc(partnerDocRef);
-                if (partnerDoc.exists()) {
-                    setIsDeliveryPartner(true);
-                    setIsAdmin(false); // A delivery partner is not an admin
-                } else {
-                    setIsDeliveryPartner(false);
-                    setIsAdmin(false);
-                }
+                setIsDeliveryPartner(partnerDoc.exists());
             } else {
-                setIsAdmin(false);
-                setIsDeliveryPartner(false);
+                 const adminSession = sessionStorage.getItem('adminUser');
+                 if (adminSession) {
+                     const adminUser = JSON.parse(adminSession);
+                     setUser(adminUser as User); // This is not a real Firebase User object
+                     setIsAdmin(true);
+                     setIsDeliveryPartner(false);
+                 } else {
+                    setUser(null);
+                    setIsAdmin(false);
+                    setIsDeliveryPartner(false);
+                 }
             }
         });
 
@@ -70,6 +67,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const login = async (email:string, password:string, isAdminLogin = false, isDeliveryPartnerLogin = false) => {
         try {
+             if (isAdminLogin) {
+                const adminQuery = query(collection(db, "admin"), where("email", "==", email));
+                const querySnapshot = await getDocs(adminQuery);
+
+                if (querySnapshot.empty) {
+                    toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
+                    return null;
+                }
+
+                const adminDoc = querySnapshot.docs[0];
+                const adminData = adminDoc.data();
+
+                if (adminData.password === password) {
+                     // IMPORTANT: This is a mock user object and not a real Firebase User.
+                    // Session will only persist in sessionStorage.
+                    const adminUser = {
+                        uid: adminDoc.id,
+                        email: adminData.email,
+                    };
+                    sessionStorage.setItem('adminUser', JSON.stringify(adminUser));
+                    setUser(adminUser as User);
+                    setIsAdmin(true);
+                    setIsDeliveryPartner(false);
+                    toast({ title: "Login Successful!", description: "Welcome back, Admin." });
+                    router.push('/admin/dashboard');
+                    return { user: adminUser, isAdmin: true, isDeliveryPartner: false };
+                } else {
+                    toast({ title: "Login Failed", description: "Invalid email or password.", variant: "destructive" });
+                    return null;
+                }
+            }
+
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const loggedInUser = userCredential.user;
             
@@ -88,16 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 userIsDeliveryPartner = true;
             }
 
-            if (isAdminLogin) {
-                if (userIsAdmin) {
-                     toast({ title: "Login Successful!", description: "Welcome back, Admin." });
-                    router.push('/admin/dashboard');
-                } else {
-                    await signOut(auth);
-                    toast({ title: "Access Denied", description: "You are not a registered admin.", variant: "destructive" });
-                    return null;
-                }
-            } else if (isDeliveryPartnerLogin) {
+            if (isDeliveryPartnerLogin) {
                 if (userIsDeliveryPartner) {
                     toast({ title: "Login Successful!", description: "Welcome back, Partner." });
                     router.push('/delivery');
@@ -143,7 +163,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     return;
                 }
 
-                // Check if employee ID exists in the 'employees' collection
                 const employeeDocRef = doc(db, "employees", employeeId);
                 const employeeDoc = await getDoc(employeeDocRef);
                 if (!employeeDoc.exists()) {
@@ -151,7 +170,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     return;
                 }
 
-                // Check if the employee ID is already used by another admin
                 const q = query(collection(db, "admin"), where("employeeId", "==", employeeId));
                 const querySnapshot = await getDocs(q);
                 if (!querySnapshot.empty) {
@@ -159,20 +177,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     return;
                 }
 
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
+                 const adminEmailQuery = query(collection(db, "admin"), where("email", "==", email));
+                const adminEmailSnapshot = await getDocs(adminEmailQuery);
+                if (!adminEmailSnapshot.empty) {
+                    toast({ title: "Signup Failed", description: "This email is already registered for an admin account.", variant: "destructive" });
+                    return;
+                }
 
-                await setDoc(doc(db, "admin", user.uid), {
-                    uid: user.uid,
-                    email: user.email,
+
+                await addDoc(collection(db, "admin"), {
+                    email: email,
+                    password: password, // Storing password in plaintext - NOT RECOMMENDED
                     employeeId: employeeId,
                     createdAt: new Date(),
                 });
                 toast({
                     title: "Admin Signup Successful!",
-                    description: "Your administrator account has been created.",
+                    description: "Your administrator account has been created. Please log in.",
                 });
-                router.push('/admin/dashboard');
+                router.push('/admin/login');
+
             } else {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
@@ -220,12 +244,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = async () => {
         try {
-            await signOut(auth);
-            toast({
-                title: "Logged Out",
-                description: "You have been successfully logged out.",
-            });
-            router.push('/login');
+            const adminSession = sessionStorage.getItem('adminUser');
+            if (adminSession) {
+                sessionStorage.removeItem('adminUser');
+                setUser(null);
+                setIsAdmin(false);
+                toast({
+                    title: "Logged Out",
+                    description: "You have been successfully logged out.",
+                });
+                router.push('/admin/login');
+            } else {
+                await signOut(auth);
+                 toast({
+                    title: "Logged Out",
+                    description: "You have been successfully logged out.",
+                });
+                router.push('/login');
+            }
         } catch (error: any) {
              console.error("Logout error:", error);
             toast({
@@ -250,5 +286,3 @@ export const useAuth = () => {
     }
     return context;
 };
-
-    
