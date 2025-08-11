@@ -20,9 +20,8 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase
 interface AuthContextType {
     user: User | null;
     isLoggedIn: boolean;
-    isAdmin: boolean;
     isDeliveryPartner: boolean;
-    login: (email:string, password:string, isAdminLogin?: boolean, isDeliveryPartnerLogin?: boolean) => Promise<{ user: User, isAdmin: boolean, isDeliveryPartner: boolean } | null>;
+    login: (email:string, password:string, isDeliveryPartnerLogin?: boolean) => Promise<{ user: User, isDeliveryPartner: boolean } | null>;
     signup: (email:string, password:string, fullName: string, isDeliveryPartner?: boolean) => Promise<void>;
     logout: () => Promise<void>;
 }
@@ -31,7 +30,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [isAdmin, setIsAdmin] = useState(false);
     const [isDeliveryPartner, setIsDeliveryPartner] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
@@ -40,26 +38,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
             if (user) {
-                // Check both collections to determine the user's role
-                const adminDocRef = doc(db, "admin", user.uid);
-                const adminDoc = await getDoc(adminDocRef);
-                 if (adminDoc.exists()) {
-                    setIsAdmin(true);
-                    setIsDeliveryPartner(false);
-                    return;
-                }
-
                 const partnerDocRef = doc(db, "deliveryPartners", user.uid);
                 const partnerDoc = await getDoc(partnerDocRef);
                 if (partnerDoc.exists()) {
                     setIsDeliveryPartner(true);
-                    setIsAdmin(false);
                 } else {
                     setIsDeliveryPartner(false);
-                    setIsAdmin(false);
                 }
             } else {
-                setIsAdmin(false);
                 setIsDeliveryPartner(false);
             }
         });
@@ -67,47 +53,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => unsubscribe();
     }, []);
 
-    const login = async (email:string, password:string, isAdminLogin = false, isDeliveryPartnerLogin = false) => {
+    const login = async (email:string, password:string, isDeliveryPartnerLogin = false) => {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const loggedInUser = userCredential.user;
             
-            let userIsAdmin = false;
             let userIsDeliveryPartner = false;
             let userIsRegularUser = false;
             
-            // Check admin collection
-            const adminDocRef = doc(db, "admin", loggedInUser.uid);
-            const adminDoc = await getDoc(adminDocRef);
-            if (adminDoc.exists()) {
-                userIsAdmin = true;
-            }
-
-            // Check delivery partner collection
             const partnerDocRef = doc(db, "deliveryPartners", loggedInUser.uid);
             const partnerDoc = await getDoc(partnerDocRef);
             if (partnerDoc.exists()) {
                 userIsDeliveryPartner = true;
             }
 
-            // Check user collection
             const userDocRef = doc(db, "users", loggedInUser.uid);
             const userDoc = await getDoc(userDocRef);
             if (userDoc.exists()) {
                 userIsRegularUser = true;
             }
 
-            // Route based on where they are logging in from and their role
-            if (isAdminLogin) {
-                 if (userIsAdmin) {
-                    toast({ title: "Login Successful!", description: "Welcome back, Admin." });
-                    router.push('/admin/dashboard');
-                 } else {
-                    await signOut(auth);
-                    toast({ title: "Access Denied", description: "You are not authorized to access the admin panel.", variant: "destructive" });
-                    return null;
-                 }
-            } else if (isDeliveryPartnerLogin) {
+            if (isDeliveryPartnerLogin) {
                 if (userIsDeliveryPartner) {
                     toast({ title: "Login Successful!", description: "Welcome back, Partner." });
                     router.push('/delivery');
@@ -127,7 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     return null;
                 }
             }
-            return { user: loggedInUser, isAdmin: userIsAdmin, isDeliveryPartner: userIsDeliveryPartner };
+            return { user: loggedInUser, isDeliveryPartner: userIsDeliveryPartner };
 
         } catch (error: any) {
             console.error("Login error:", error);
@@ -211,7 +177,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, isLoggedIn: !!user, isAdmin, isDeliveryPartner, login, signup, logout }}>
+        <AuthContext.Provider value={{ user, isLoggedIn: !!user, isDeliveryPartner, login, signup, logout }}>
             {children}
         </AuthContext.Provider>
     );

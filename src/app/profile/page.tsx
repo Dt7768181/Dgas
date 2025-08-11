@@ -24,7 +24,7 @@ interface Order {
 }
 
 export default function ProfilePage() {
-    const { user, isLoggedIn, isDeliveryPartner, isAdmin } = useAuth();
+    const { user, isLoggedIn, isDeliveryPartner } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [fullName, setFullName] = useState('');
@@ -43,8 +43,6 @@ export default function ProfilePage() {
                 let collectionName = "users";
                 if (isDeliveryPartner) {
                     collectionName = "deliveryPartners";
-                } else if (isAdmin) {
-                    collectionName = "admin";
                 }
 
                 const userDocRef = doc(db, collectionName, user.uid);
@@ -57,8 +55,8 @@ export default function ProfilePage() {
                     setAddress(userData.address || '');
                 }
 
-                // Only fetch orders for regular users, not delivery partners or admins
-                if (!isDeliveryPartner && !isAdmin) {
+                // Only fetch orders for regular users, not delivery partners
+                if (!isDeliveryPartner) {
                     const ordersQuery = query(collection(db, "users", user.uid, "orders"), orderBy("createdAt", "desc"));
                     const querySnapshot = await getDocs(ordersQuery);
                     const orders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
@@ -69,15 +67,13 @@ export default function ProfilePage() {
 
         fetchUserData();
 
-    }, [isLoggedIn, router, user, isDeliveryPartner, isAdmin]);
+    }, [isLoggedIn, router, user, isDeliveryPartner]);
 
     const handleSaveChanges = async () => {
         if (user) {
             let collectionName = "users";
             if (isDeliveryPartner) {
                 collectionName = "deliveryPartners";
-            } else if (isAdmin) {
-                collectionName = "admin";
             }
             
             const userDocRef = doc(db, collectionName, user.uid);
@@ -151,7 +147,7 @@ export default function ProfilePage() {
                     </Card>
                 </div>
 
-                {!isDeliveryPartner && !isAdmin && (
+                {!isDeliveryPartner && (
                     <div className="md:col-span-2">
                         <Card className="shadow-lg">
                             <CardHeader>
