@@ -128,7 +128,6 @@ export function BookingForm() {
         try {
             const userDocRef = doc(db, "users", user.uid);
 
-            // Use a transaction to safely decrement the barrel count
             await runTransaction(db, async (transaction) => {
                 const userDoc = await transaction.get(userDocRef);
                 if (!userDoc.exists()) {
@@ -140,12 +139,10 @@ export function BookingForm() {
                     throw "No barrels remaining!";
                 }
 
-                // Decrement barrels
                 transaction.update(userDocRef, {
                     "subscription.barrelsRemaining": currentSubscription.barrelsRemaining - 1
                 });
                 
-                // Add the new order
                 const deliveryDate = new Date(bookingDetails.deliveryDate);
                 const slotTime = deliverySlotTimes[bookingDetails.deliverySlot];
                 if (slotTime) {
@@ -157,15 +154,15 @@ export function BookingForm() {
                     orderId: `DGAS${Math.floor(10000 + Math.random() * 90000)}`,
                     ...bookingDetails,
                     deliveryDate: deliveryDate,
-                    total: 0, // No cost as it's from subscription
-                    status: "Confirmed",
+                    total: 0,
+                    status: "Pending Approval",
                     createdAt: serverTimestamp(),
                 });
             });
 
             toast({
-                title: "Booking Successful!",
-                description: "Your order has been confirmed using one barrel from your subscription.",
+                title: "Booking Request Submitted!",
+                description: "Your request has been sent for approval. You can track its status on the track page.",
             });
 
             setTimeout(() => {

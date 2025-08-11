@@ -82,15 +82,17 @@ export default function TrackOrderPage() {
 
       {latestOrder ? (
          <Card className="mt-12 w-full shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <CardTitle className="text-2xl">Order #{latestOrder.orderId}</CardTitle>
                 <CardDescription>{formatCylinderType(latestOrder.cylinderType)}</CardDescription>
             </div>
-            <div className="text-right">
-                <p className="font-bold text-primary">Estimated Arrival</p>
-                <p className="text-muted-foreground">{latestOrder.deliveryDate.toDate().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
-            </div>
+             {latestOrder.status !== 'Rejected' && (
+                <div className="text-left sm:text-right">
+                    <p className="font-bold text-primary">Estimated Arrival</p>
+                    <p className="text-muted-foreground">{latestOrder.deliveryDate.toDate().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+                </div>
+            )}
             </CardHeader>
             <Separator />
             <CardContent className="p-6">

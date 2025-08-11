@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collectionGroup, onSnapshot, query, doc, updateDoc, Timestamp } from "firebase/firestore";
+import { collectionGroup, onSnapshot, query, doc, updateDoc, Timestamp, runTransaction, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "./ui/badge";
 
 interface Order {
-    id: string; // This will be the path to the document
+    id: string; 
     orderId: string;
     cylinderType: string;
     deliveryDate: Timestamp;
@@ -39,7 +39,7 @@ export function DeliveryManager() {
         const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
             const fetchedOrders = snapshot.docs.map(doc => {
                 const data = doc.data();
-                const userId = doc.ref.parent.parent?.id; // Get the userId from the path
+                const userId = doc.ref.parent.parent?.id; 
                 return { 
                     id: doc.id,
                     userId: userId,
@@ -59,9 +59,25 @@ export function DeliveryManager() {
         }
 
         const orderRef = doc(db, "users", order.userId, "orders", order.id);
+        const userRef = doc(db, "users", order.userId);
+
         try {
-            await updateDoc(orderRef, { status: newStatus });
-            toast({ title: "Success", description: `Order #${order.orderId} updated to ${newStatus}.` });
+            if (newStatus === 'Rejected' && order.status !== 'Rejected') {
+                 await runTransaction(db, async (transaction) => {
+                    const userDoc = await transaction.get(userRef);
+                    if (!userDoc.exists()) {
+                        throw "User not found";
+                    }
+                    transaction.update(orderRef, { status: newStatus });
+                    transaction.update(userRef, { "subscription.barrelsRemaining": increment(1) });
+                });
+                toast({ title: "Order Rejected", description: `Order #${order.orderId} rejected. Barrel refunded to user.` });
+
+            } else {
+                await updateDoc(orderRef, { status: newStatus });
+                toast({ title: "Success", description: `Order #${order.orderId} updated to ${newStatus}.` });
+            }
+
         } catch (error) {
             console.error("Error updating status:", error);
             toast({ title: "Error", description: "Failed to update order status.", variant: "destructive" });
@@ -73,7 +89,7 @@ export function DeliveryManager() {
         <Card className="shadow-lg">
             <CardHeader>
                 <CardTitle>Delivery Management</CardTitle>
-                <CardDescription>Live feed of all customer orders.</CardDescription>
+                <CardDescription>Live feed of all customer orders. Approve or reject new requests.</CardDescription>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -106,7 +122,9 @@ export function DeliveryManager() {
                                             <SelectValue placeholder="Status" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Confirmed">Confirmed</SelectItem>
+                                            <SelectItem value="Pending Approval">Pending Approval</SelectItem>
+                                            <SelectItem value="Approved">Approved</SelectItem>
+                                            <SelectItem value="Rejected">Rejected</SelectItem>
                                             <SelectItem value="Processing">Processing</SelectItem>
                                             <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
                                             <SelectItem value="Delivered">Delivered</SelectItem>

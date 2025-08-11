@@ -1,21 +1,31 @@
 
 import { cn } from "@/lib/utils";
-import { Home, PackageCheck, Truck, Cog } from "lucide-react";
+import { Home, PackageCheck, Truck, Cog, CheckCircle, XCircle, Hourglass } from "lucide-react";
 import { useMemo } from "react";
 
 const stepConfig = [
-    { name: "Order Confirmed", icon: PackageCheck, status: "Confirmed" },
+    { name: "Pending", icon: Hourglass, status: "Pending Approval" },
+    { name: "Approved", icon: CheckCircle, status: "Approved" },
     { name: "Processing", icon: Cog, status: "Processing" },
     { name: "Out for Delivery", icon: Truck, status: "Out for Delivery" },
     { name: "Delivered", icon: Home, status: "Delivered" },
 ];
 
+const rejectedStep = { name: "Rejected", icon: XCircle, status: "Rejected" };
+
 export function OrderTracker({ currentStatus }: { currentStatus: string }) {
     const steps = useMemo(() => {
+        if (currentStatus === "Rejected") {
+            return [{ ...rejectedStep, visualStatus: 'active' }];
+        }
+
         const currentStepIndex = stepConfig.findIndex(s => s.status === currentStatus);
         
         return stepConfig.map((step, index) => {
             let status = 'pending';
+            if (currentStepIndex === -1 && index === 0) { // Default to first step if status unknown
+                 status = 'active';
+            }
             if (index < currentStepIndex) {
                 status = 'completed';
             } else if (index === currentStepIndex) {
@@ -26,9 +36,22 @@ export function OrderTracker({ currentStatus }: { currentStatus: string }) {
 
     }, [currentStatus]);
 
+     if (currentStatus === "Rejected") {
+        return (
+             <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-destructive rounded-lg bg-destructive/10">
+                <XCircle className="h-16 w-16 text-destructive mb-4"/>
+                <h3 className="text-2xl font-bold text-destructive">Order Rejected</h3>
+                <p className="text-muted-foreground">Your booking request was rejected by the administrator. A barrel has been returned to your account.</p>
+            </div>
+        )
+    }
+
     return (
         <div className="w-full">
-            <ol className="relative grid grid-cols-4 text-center">
+            <ol className={cn(
+                "relative text-center",
+                `grid grid-cols-${steps.length}`
+                )}>
                 {steps.map((step, index) => {
                     const isCompleted = step.visualStatus === 'completed';
                     const isActive = step.visualStatus === 'active';
