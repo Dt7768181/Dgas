@@ -16,7 +16,7 @@ Dgas is a web application designed to simplify the process of booking and managi
 Dgas follows a clean and modern design philosophy with a focus on user experience.
 
 - **Color Palette:**
-    - Primary: Sky blue (#7EC8E3) - conveying reliability and freshness.
+    - Primary: Red (#7EC8E3) - conveying reliability and freshness.
     - Background: Light gray (#F0F4F7) - providing a clean and spacious layout.
     - Accent: Yellow-orange (#FFB347) - used for calls to action to create a sense of urgency.
 - **Typography:**
